@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { DiffSource, GitApi } from '../shared/types'
+import type { DiffSource, GitApi, TermApi } from '../shared/types'
 
 const api: GitApi = {
   openRepoDialog: () => ipcRenderer.invoke('repo:open'),
@@ -20,3 +20,26 @@ const api: GitApi = {
 }
 
 contextBridge.exposeInMainWorld('gitApi', api)
+
+const termApi: TermApi = {
+  run: (command) => ipcRenderer.send('term:run', command),
+  interrupt: () => ipcRenderer.send('term:interrupt'),
+  cwd: () => ipcRenderer.invoke('term:cwd'),
+  onData: (cb) => {
+    const l = (_e: unknown, chunk: string) => cb(chunk)
+    ipcRenderer.on('term:data', l)
+    return () => ipcRenderer.removeListener('term:data', l)
+  },
+  onExit: (cb) => {
+    const l = (_e: unknown, info: { code: number; cwd: string }) => cb(info)
+    ipcRenderer.on('term:exit', l)
+    return () => ipcRenderer.removeListener('term:exit', l)
+  },
+  onToggle: (cb) => {
+    const l = () => cb()
+    ipcRenderer.on('menu:toggleTerminal', l)
+    return () => ipcRenderer.removeListener('menu:toggleTerminal', l)
+  }
+}
+
+contextBridge.exposeInMainWorld('termApi', termApi)

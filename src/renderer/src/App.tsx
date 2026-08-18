@@ -12,6 +12,7 @@ import ChangesPanel from './components/ChangesPanel'
 import CommitInfoPanel from './components/CommitInfoPanel'
 import CommitGraph from './components/CommitGraph'
 import DiffView, { DiffMode } from './components/DiffView'
+import TerminalModal from './components/TerminalModal'
 
 export default function App() {
   const [repo, setRepo] = useState<RepoInfo | null>(null)
@@ -32,6 +33,7 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false)
 
   const [graphHeight, setGraphHeight] = useState(360)
+  const [terminalVisible, setTerminalVisible] = useState(false)
 
   // ---- data loading ------------------------------------------------------
 
@@ -67,6 +69,11 @@ export default function App() {
     window.gitApi.currentRepo().then((res) => {
       if (res.ok && res.data) setRepo(res.data)
     })
+  }, [])
+
+  // Toggle the terminal from the View menu / ⌘`.
+  useEffect(() => {
+    return window.termApi.onToggle(() => setTerminalVisible((v) => !v))
   }, [])
 
   // Reload everything when the repo or file filter changes.
@@ -272,6 +279,11 @@ export default function App() {
           </div>
         </main>
       </div>
+      <TerminalModal
+        visible={terminalVisible}
+        onHide={() => setTerminalVisible(false)}
+        repoName={repo.name}
+      />
     </div>
   )
 }

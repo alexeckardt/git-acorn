@@ -1,8 +1,9 @@
-import type { GitApi } from '../shared/types'
+import type { GitApi, TermApi } from '../shared/types'
 
 declare global {
   interface Window {
     gitApi: GitApi
+    termApi: TermApi
   }
 }
 

@@ -101,3 +101,19 @@ export interface GitApi {
    */
   hideLocally: (paths: string[]) => Promise<GitResult<void>>
 }
+
+/** Bridge for the embedded terminal (main process runs a shell session). */
+export interface TermApi {
+  /** Run a command; output arrives via onData, completion via onExit. */
+  run: (command: string) => void
+  /** Send SIGINT to the currently running command. */
+  interrupt: () => void
+  /** The terminal's current working directory. */
+  cwd: () => Promise<string>
+  /** Subscribe to output chunks. Returns an unsubscribe function. */
+  onData: (cb: (chunk: string) => void) => () => void
+  /** Subscribe to command completion. Returns an unsubscribe function. */
+  onExit: (cb: (info: { code: number; cwd: string }) => void) => () => void
+  /** Fired when the View menu / ⌘` requests toggling the terminal. */
+  onToggle: (cb: () => void) => () => void
+}

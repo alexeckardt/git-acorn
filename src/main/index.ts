@@ -9,6 +9,7 @@ import {
 } from 'electron'
 import { join } from 'node:path'
 import * as g from './git'
+import * as term from './terminal'
 import type { DiffSource, GitResult } from '../shared/types'
 
 function createWindow(): void {
@@ -78,7 +79,26 @@ function buildMenu(): void {
         }
       ]
     },
-    { role: 'viewMenu' },
+    {
+      label: 'View',
+      submenu: [
+        {
+          label: 'Terminal',
+          accelerator: 'CmdOrCtrl+`',
+          click: () => BrowserWindow.getFocusedWindow()?.webContents.send('menu:toggleTerminal')
+        },
+        { type: 'separator' },
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
     { role: 'windowMenu' }
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
@@ -103,11 +123,19 @@ function registerIpc(): void {
       if (res.canceled || res.filePaths.length === 0) {
         throw new Error('Cancelled')
       }
-      return g.setRepo(res.filePaths[0])
+      const info = await g.setRepo(res.filePaths[0])
+      term.resetTerminal()
+      return info
     })
   })
 
-  ipcMain.handle('repo:set', (_e, path: string) => wrap(() => g.setRepo(path)))
+  ipcMain.handle('repo:set', (_e, path: string) =>
+    wrap(async () => {
+      const info = await g.setRepo(path)
+      term.resetTerminal()
+      return info
+    })
+  )
   ipcMain.handle('repo:current', () => wrap(async () => g.currentRepo()))
 
   ipcMain.handle('git:status', () => wrap(() => g.status()))
@@ -127,6 +155,17 @@ function registerIpc(): void {
     wrap(() => g.addToGitignore(paths))
   )
   ipcMain.handle('git:hideLocally', (_e, paths: string[]) => wrap(() => g.hideLocally(paths)))
+
+  // Terminal
+  ipcMain.on('term:run', (e, command: string) => {
+    term.runCommand(
+      command,
+      (chunk) => e.sender.send('term:data', chunk),
+      (code, cwd) => e.sender.send('term:exit', { code, cwd })
+    )
+  })
+  ipcMain.on('term:interrupt', () => term.interruptTerminal())
+  ipcMain.handle('term:cwd', () => term.terminalCwd())
 }
 
 app.whenReady().then(() => {

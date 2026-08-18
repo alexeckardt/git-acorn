@@ -1556,20 +1556,28 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
-  padding: 1px 7px 1px 6px;
-  border-radius: 10px;
-  background: rgba(127, 201, 160, 0.15);
-  color: var(--green);
-  border: 1px solid rgba(127, 201, 160, 0.4);
+  font-size: 14px;
+  font-weight: 400;
+  padding-left: 7px;
+  padding-right: 7px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-radius: 11px;
+  margin-left: 4px;
+  /* GitHub's vibrant open-PR green */
+  color: #3fb950;
+  background: rgba(63, 185, 80, 0.14);
+  border: 1px solid rgba(63, 185, 80, 0.45);
   cursor: pointer;
   user-select: none;
+  transition: opacity 0.12s;
 }
-.pr-tick {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--green);
+.pr-chip:hover {
+  opacity: 0.6;
+}
+.pr-icon {
+  display: block;
+  flex: 0 0 auto;
 }
 
 .filter-banner {

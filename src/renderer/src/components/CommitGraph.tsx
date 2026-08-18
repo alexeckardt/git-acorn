@@ -284,7 +284,8 @@ export default function CommitGraph({
                               onOpenPR(pr.url)
                             }}
                           >
-                            <span className="pr-tick" />#{pr.number}
+                            <Icon name="git-pull-request" size={13} className="pr-icon" />#
+                            {pr.number}
                           </span>
                         )}
                       </span>

@@ -33,6 +33,29 @@ export default function PreferencesModal({ open, onClose }: Props) {
         <div className="prefs-body">
           <div className="prefs-row">
             <div className="prefs-row-text">
+              <div className="prefs-row-label">Commit workflow</div>
+              <div className="prefs-row-desc">
+                What the Commit button and ⌘/Ctrl+Enter do.
+              </div>
+            </div>
+            <div className="segmented prefs-segmented">
+              <button
+                className={prefs.commitWorkflow === 'desktop' ? 'active' : ''}
+                onClick={() => setPref('commitWorkflow', 'desktop')}
+              >
+                GitHub Desktop
+              </button>
+              <button
+                className={prefs.commitWorkflow === 'wizard' ? 'active' : ''}
+                onClick={() => setPref('commitWorkflow', 'wizard')}
+              >
+                Commit Wizard
+              </button>
+            </div>
+          </div>
+
+          <div className="prefs-row">
+            <div className="prefs-row-text">
               <div className="prefs-row-label">Describe changes on commit</div>
               <div className="prefs-row-desc">
                 When you commit with an empty description, walk through each file to build a

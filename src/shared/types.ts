@@ -98,6 +98,14 @@ export interface GitApi {
   branches: () => Promise<GitResult<{ current: string; all: string[] }>>
   /** Switch to an existing branch (carries over uncommitted changes). */
   switchBranch: (name: string) => Promise<GitResult<void>>
+  /** The repo's default branch (remote HEAD, else local main/master). */
+  defaultBranch: () => Promise<GitResult<string>>
+  /** Whether the GitHub CLI is installed. */
+  ghAvailable: () => Promise<GitResult<boolean>>
+  /** Whether a branch already has an open PR (best-effort). */
+  branchHasPR: (branch: string) => Promise<GitResult<boolean>>
+  /** Create a PR for the current branch (`gh pr create --fill`); returns its URL. */
+  createPR: () => Promise<GitResult<string>>
   /** Append the paths to the repo's committed .gitignore. */
   addToGitignore: (paths: string[]) => Promise<GitResult<void>>
   /**

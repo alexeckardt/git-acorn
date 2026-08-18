@@ -3,13 +3,18 @@ import { useSyncExternalStore } from 'react'
 // A tiny reactive preferences store backed by localStorage. Components read it
 // with usePrefs() and re-render when any preference changes.
 
+export type CommitWorkflow = 'desktop' | 'wizard'
+
 export interface Preferences {
   /** Run the description writer when committing with an empty description. */
   autoDescribe: boolean
+  /** Which flow Ctrl/Cmd+Enter (and the Commit button) triggers. */
+  commitWorkflow: CommitWorkflow
 }
 
 const DEFAULTS: Preferences = {
-  autoDescribe: true
+  autoDescribe: true,
+  commitWorkflow: 'desktop'
 }
 
 const KEY = 'git-acorn.prefs'

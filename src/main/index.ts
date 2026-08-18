@@ -203,6 +203,10 @@ function registerIpc(): void {
   ipcMain.handle('git:createBranch', (_e, name: string) => wrap(() => g.createBranch(name)))
   ipcMain.handle('git:branches', () => wrap(() => g.branches()))
   ipcMain.handle('git:switchBranch', (_e, name: string) => wrap(() => g.switchBranch(name)))
+  ipcMain.handle('git:defaultBranch', () => wrap(() => g.defaultBranch()))
+  ipcMain.handle('git:ghAvailable', () => wrap(() => g.ghAvailable()))
+  ipcMain.handle('git:branchHasPR', (_e, branch: string) => wrap(() => g.branchHasPR(branch)))
+  ipcMain.handle('git:createPR', () => wrap(() => g.createPR()))
   ipcMain.handle('git:addToGitignore', (_e, paths: string[]) =>
     wrap(() => g.addToGitignore(paths))
   )

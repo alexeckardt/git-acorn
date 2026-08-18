@@ -1056,6 +1056,204 @@ code {
   outline-offset: 1px;
 }
 
+.prefs-segmented {
+  flex: 0 0 auto;
+}
+
+/* ---- Commit wizard ---------------------------------------------------- */
+
+.wizard-modal {
+  width: min(520px, 92vw);
+  background: var(--bg-1);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.wizard-modal.wizard-wide {
+  width: min(1100px, 92vw);
+  height: min(720px, 86vh);
+}
+.wizard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 10px 10px 16px;
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.wizard-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.wizard-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.wizard-step.active {
+  color: var(--text);
+  background: var(--bg-3);
+}
+.wizard-step.done {
+  color: var(--text-dim);
+}
+.wizard-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  font-size: 11px;
+}
+.wizard-step.active .wizard-step-num {
+  background: var(--accent);
+  color: #fff;
+}
+.wizard-step.done .wizard-step-num {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+}
+.wizard-error {
+  margin: 10px 16px 0;
+  color: var(--red);
+  font-size: 12px;
+}
+.wizard-body {
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.wizard-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+.wizard-name {
+  font-family: var(--font);
+}
+.wizard-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wizard-candidate {
+  text-align: left;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 13px;
+}
+.wizard-candidate:hover {
+  border-color: var(--border-strong);
+}
+.wizard-candidate.active {
+  border-color: var(--accent);
+  background: var(--bg-sel);
+}
+.wizard-desc-preview {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.wizard-desc-preview summary {
+  cursor: pointer;
+}
+.wizard-desc-preview pre {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+}
+.wizard-branch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.wizard-branch-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.wizard-branch-name .branch-icon {
+  color: var(--accent);
+}
+.wizard-pr {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.wizard-pr input {
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+.wizard-note {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.wizard-note a {
+  color: var(--accent-2);
+}
+.wizard-summary-line {
+  font-size: 13px;
+  color: var(--text-dim);
+  padding: 8px 10px;
+  background: var(--bg-2);
+  border-radius: 8px;
+}
+.wizard-summary-line strong {
+  color: var(--text);
+}
+.wizard-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Embedded description writer (inside the wizard) */
+.desc-embedded {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* Ctrl+Enter "primed to continue" pulse */
+.desc-input.primed {
+  border-color: var(--accent) !important;
+  animation: primedPulse 0.48s ease;
+}
+@keyframes primedPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(166, 143, 214, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(166, 143, 214, 0);
+  }
+}
+
 /* ---- Description writer modal ----------------------------------------- */
 
 .modal-overlay {

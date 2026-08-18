@@ -19,7 +19,11 @@ const api: GitApi = {
   hideLocally: (paths) => ipcRenderer.invoke('git:hideLocally', paths),
   createBranch: (name) => ipcRenderer.invoke('git:createBranch', name),
   branches: () => ipcRenderer.invoke('git:branches'),
-  switchBranch: (name) => ipcRenderer.invoke('git:switchBranch', name)
+  switchBranch: (name) => ipcRenderer.invoke('git:switchBranch', name),
+  defaultBranch: () => ipcRenderer.invoke('git:defaultBranch'),
+  ghAvailable: () => ipcRenderer.invoke('git:ghAvailable'),
+  branchHasPR: (branch) => ipcRenderer.invoke('git:branchHasPR', branch),
+  createPR: () => ipcRenderer.invoke('git:createPR')
 }
 
 contextBridge.exposeInMainWorld('gitApi', api)

@@ -465,6 +465,66 @@ export async function switchBranch(name: string): Promise<void> {
   await git(['checkout', trimmed])
 }
 
+/** Run an arbitrary command (e.g. `gh`) in the repo directory. */
+function runCmd(cmd: string, args: string[]): Promise<string> {
+  const dir = repoPath
+  if (!dir) return Promise.reject(new Error('No repository is open'))
+  return new Promise((resolve, reject) => {
+    execFile(
+      cmd,
+      args,
+      { cwd: dir, maxBuffer: 32 * 1024 * 1024, windowsHide: true },
+      (err, stdout, stderr) => {
+        if (err) {
+          reject(new Error(stderr?.toString().trim() || err.message))
+          return
+        }
+        resolve(stdout.toString())
+      }
+    )
+  })
+}
+
+/** The repo's default branch (remote HEAD, else a local main/master). */
+export async function defaultBranch(): Promise<string> {
+  try {
+    const ref = (await git(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'])).trim()
+    if (ref.startsWith('origin/')) return ref.slice('origin/'.length)
+  } catch {
+    /* no remote HEAD */
+  }
+  const { all } = await branches()
+  if (all.includes('main')) return 'main'
+  if (all.includes('master')) return 'master'
+  return ''
+}
+
+/** Whether the GitHub CLI is installed and runnable. */
+export async function ghAvailable(): Promise<boolean> {
+  try {
+    await runCmd('gh', ['--version'])
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Whether the given branch already has an open PR (best-effort via gh). */
+export async function branchHasPR(branch: string): Promise<boolean> {
+  if (!branch) return false
+  try {
+    await runCmd('gh', ['pr', 'view', branch, '--json', 'number'])
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Create a PR for the current branch with `gh pr create --fill`. Returns its URL. */
+export async function createPR(): Promise<string> {
+  return (await runCmd('gh', ['pr', 'create', '--fill'])).trim()
+}
+
 /** Append a single anchored line to an ignore-style file, skipping duplicates. */
 async function appendUniqueLine(file: string, entry: string): Promise<void> {
   let existing = ''

@@ -7,10 +7,25 @@ import {
   MenuItemConstructorOptions,
   shell
 } from 'electron'
+import { execFile } from 'node:child_process'
 import { join } from 'node:path'
 import * as g from './git'
 import * as term from './terminal'
 import type { DiffSource, GitResult } from '../shared/types'
+
+/** Open the repo folder in a code editor, falling back to the OS file handler. */
+async function openInEditor(): Promise<void> {
+  const repo = g.getRepoPath()
+  if (!repo) throw new Error('No repository is open')
+  for (const editor of ['code', 'cursor', 'subl', 'zed']) {
+    const ok = await new Promise<boolean>((resolve) => {
+      execFile(editor, [repo], (err) => resolve(!err))
+    })
+    if (ok) return
+  }
+  const err = await shell.openPath(repo)
+  if (err) throw new Error(err)
+}
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -207,6 +222,20 @@ function registerIpc(): void {
   ipcMain.handle('git:ghAvailable', () => wrap(() => g.ghAvailable()))
   ipcMain.handle('git:branchHasPR', (_e, branch: string) => wrap(() => g.branchHasPR(branch)))
   ipcMain.handle('git:createPR', () => wrap(() => g.createPR()))
+  ipcMain.handle('git:renameBranch', (_e, oldName: string, newName: string) =>
+    wrap(() => g.renameBranch(oldName, newName))
+  )
+  ipcMain.handle('git:deleteBranch', (_e, name: string, force: boolean) =>
+    wrap(() => g.deleteBranch(name, force))
+  )
+  ipcMain.handle('git:mergeBranch', (_e, name: string) => wrap(() => g.mergeBranch(name)))
+  ipcMain.handle('git:listPRs', () => wrap(() => g.listPRs()))
+  ipcMain.handle('git:openInEditor', () => wrap(() => openInEditor()))
+  ipcMain.handle('git:openExternal', (_e, url: string) =>
+    wrap(async () => {
+      await shell.openExternal(url)
+    })
+  )
   ipcMain.handle('git:addToGitignore', (_e, paths: string[]) =>
     wrap(() => g.addToGitignore(paths))
   )

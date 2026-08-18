@@ -1,14 +1,24 @@
 import type { RepoInfo, RepoStatus } from '../../../shared/types'
+import { isMac } from '../lib/commands'
 
 interface Props {
   repo: RepoInfo | null
   status: RepoStatus | null
   refreshing: boolean
   onSwitchRepo: () => void
+  onSwitchBranch: () => void
   onRefresh: () => void
 }
 
-export default function TitleBar({ repo, status, refreshing, onSwitchRepo, onRefresh }: Props) {
+export default function TitleBar({
+  repo,
+  status,
+  refreshing,
+  onSwitchRepo,
+  onSwitchBranch,
+  onRefresh
+}: Props) {
+  const branchShortcut = `${isMac ? '⌘' : 'Ctrl+'}B`
   return (
     <div className="titlebar">
       <div className="titlebar-left">
@@ -17,12 +27,16 @@ export default function TitleBar({ repo, status, refreshing, onSwitchRepo, onRef
       </div>
       <div className="titlebar-right">
         {status && (
-          <span className="branch-pill" title={status.upstream}>
+          <button
+            className="branch-pill"
+            onClick={onSwitchBranch}
+            title={`Switch branch (${branchShortcut})`}
+          >
             <span className="branch-icon">⑂</span>
             {status.branch}
             {status.ahead > 0 && <span className="ab">↑{status.ahead}</span>}
             {status.behind > 0 && <span className="ab">↓{status.behind}</span>}
-          </span>
+          </button>
         )}
         {repo && (
           <button

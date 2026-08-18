@@ -23,7 +23,13 @@ const api: GitApi = {
   defaultBranch: () => ipcRenderer.invoke('git:defaultBranch'),
   ghAvailable: () => ipcRenderer.invoke('git:ghAvailable'),
   branchHasPR: (branch) => ipcRenderer.invoke('git:branchHasPR', branch),
-  createPR: () => ipcRenderer.invoke('git:createPR')
+  createPR: () => ipcRenderer.invoke('git:createPR'),
+  renameBranch: (oldName, newName) => ipcRenderer.invoke('git:renameBranch', oldName, newName),
+  deleteBranch: (name, force) => ipcRenderer.invoke('git:deleteBranch', name, force),
+  mergeBranch: (name) => ipcRenderer.invoke('git:mergeBranch', name),
+  listPRs: () => ipcRenderer.invoke('git:listPRs'),
+  openInEditor: () => ipcRenderer.invoke('git:openInEditor'),
+  openExternal: (url) => ipcRenderer.invoke('git:openExternal', url)
 }
 
 contextBridge.exposeInMainWorld('gitApi', api)

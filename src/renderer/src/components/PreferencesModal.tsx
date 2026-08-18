@@ -1,5 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { setPref, usePrefs } from '../lib/prefs'
+import { PREFIXES } from '../lib/branchDisplay'
+import Icon from './Icon'
 
 interface Props {
   open: boolean
@@ -8,6 +10,7 @@ interface Props {
 
 export default function PreferencesModal({ open, onClose }: Props) {
   const prefs = usePrefs()
+  const [prefixMenu, setPrefixMenu] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -19,6 +22,8 @@ export default function PreferencesModal({ open, onClose }: Props) {
   }, [open, onClose])
 
   if (!open) return null
+
+  const activePrefix = PREFIXES.find((p) => p.key === prefs.defaultBranchPrefix) ?? PREFIXES[0]
 
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -70,6 +75,40 @@ export default function PreferencesModal({ open, onClose }: Props) {
               />
               <span className="switch-slider" />
             </label>
+          </div>
+
+          <div className="prefs-row">
+            <div className="prefs-row-text">
+              <div className="prefs-row-label">Default branch prefix</div>
+              <div className="prefs-row-desc">
+                Pre-selected in the branch creator (⌘/Ctrl+B). You can still change it there.
+              </div>
+            </div>
+            <div className="prefs-prefix-picker">
+              <button className="prefix-picker-btn" onClick={() => setPrefixMenu((m) => !m)}>
+                <Icon name={activePrefix.icon} size={15} />
+                <span>{activePrefix.label}</span>
+                <code className="prefix-key">{activePrefix.key || '—'}</code>
+              </button>
+              {prefixMenu && (
+                <div className="prefix-menu prefs-prefix-menu">
+                  {PREFIXES.map((p) => (
+                    <button
+                      key={p.key || 'none'}
+                      className={`prefix-item${p.key === activePrefix.key ? ' active' : ''}`}
+                      onClick={() => {
+                        setPref('defaultBranchPrefix', p.key)
+                        setPrefixMenu(false)
+                      }}
+                    >
+                      <Icon name={p.icon} />
+                      <span className="prefix-label">{p.label}</span>
+                      <code className="prefix-key">{p.key || '—'}</code>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

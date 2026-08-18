@@ -10,11 +10,14 @@ export interface Preferences {
   autoDescribe: boolean
   /** Which flow Ctrl/Cmd+Enter (and the Commit button) triggers. */
   commitWorkflow: CommitWorkflow
+  /** Prefix pre-selected when creating a new branch (e.g. "feat/", or ""). */
+  defaultBranchPrefix: string
 }
 
 const DEFAULTS: Preferences = {
   autoDescribe: true,
-  commitWorkflow: 'desktop'
+  commitWorkflow: 'desktop',
+  defaultBranchPrefix: ''
 }
 
 const KEY = 'git-acorn.prefs'

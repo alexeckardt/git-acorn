@@ -11,6 +11,8 @@ import type {
   CommitRef,
   DiffSource,
   FileStatus,
+  MergeResult,
+  PullRequest,
   RepoInfo,
   RepoStatus
 } from '../shared/types'
@@ -526,6 +528,57 @@ export async function branchHasPR(branch: string): Promise<boolean> {
     return true
   } catch {
     return false
+  }
+}
+
+export async function renameBranch(oldName: string, newName: string): Promise<void> {
+  const to = newName.trim()
+  if (!to) throw new Error('New branch name is required')
+  await git(['branch', '-m', oldName, to])
+}
+
+export async function deleteBranch(name: string, force: boolean): Promise<void> {
+  await git(['branch', force ? '-D' : '-d', name])
+}
+
+export async function mergeBranch(name: string): Promise<MergeResult> {
+  try {
+    const out = await git(['merge', '--no-edit', name])
+    return { conflict: false, message: out.trim() }
+  } catch (e) {
+    // A merge that stops on conflicts leaves unmerged (U) paths.
+    const unmerged = (await git(['diff', '--name-only', '--diff-filter=U'])).trim()
+    if (unmerged) return { conflict: true, message: (e as Error).message }
+    throw e
+  }
+}
+
+export async function listPRs(): Promise<PullRequest[]> {
+  try {
+    const out = await runCmd('gh', [
+      'pr',
+      'list',
+      '--state',
+      'open',
+      '--json',
+      'number,url,headRefName,title,state'
+    ])
+    const arr = JSON.parse(out) as {
+      number: number
+      url: string
+      headRefName: string
+      title: string
+      state: string
+    }[]
+    return arr.map((p) => ({
+      number: p.number,
+      url: p.url,
+      branch: p.headRefName,
+      title: p.title,
+      state: p.state
+    }))
+  } catch {
+    return []
   }
 }
 

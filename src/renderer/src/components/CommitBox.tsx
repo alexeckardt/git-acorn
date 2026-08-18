@@ -2,13 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import type { RepoStatus } from '../../../shared/types'
 import DescriptionWriter, { DescEntry } from './DescriptionWriter'
 import { registerCommand } from '../lib/commands'
+import { usePrefs } from '../lib/prefs'
 
 interface Props {
   status: RepoStatus
   onCommitted: () => void
 }
-
-const AUTO_KEY = 'git-acorn.autoDescribe'
 
 export default function CommitBox({ status, onCommitted }: Props) {
   const [summary, setSummary] = useState('')
@@ -19,14 +18,8 @@ export default function CommitBox({ status, onCommitted }: Props) {
   const [showWriter, setShowWriter] = useState(false)
   // 'commit' → commit once the flow finishes; 'manual' → just fill the description.
   const [writerMode, setWriterMode] = useState<'commit' | 'manual'>('manual')
-  const [autoDescribe, setAutoDescribe] = useState(() => {
-    const v = localStorage.getItem(AUTO_KEY)
-    return v === null ? true : v === '1'
-  })
-
-  useEffect(() => {
-    localStorage.setItem(AUTO_KEY, autoDescribe ? '1' : '0')
-  }, [autoDescribe])
+  // Configured in Preferences.
+  const { autoDescribe } = usePrefs()
 
   const stagedCount = status.staged.length
   const canCommit = summary.trim().length > 0 && stagedCount > 0 && !busy
@@ -127,14 +120,6 @@ export default function CommitBox({ status, onCommitted }: Props) {
         >
           ✎ Describe changes
         </button>
-        <label className="auto-toggle" title="Run the describer automatically when committing with no description">
-          <input
-            type="checkbox"
-            checked={autoDescribe}
-            onChange={(e) => setAutoDescribe(e.target.checked)}
-          />
-          Auto on commit
-        </label>
       </div>
 
       {error && <div className="commit-error">{error}</div>}

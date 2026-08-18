@@ -75,8 +75,29 @@ function commandItem(
 
 function buildMenu(): void {
   const isMac = process.platform === 'darwin'
+  const prefsItem = commandItem('Preferences…', 'preferences', 'CmdOrCtrl+,')
   const template: MenuItemConstructorOptions[] = [
-    ...(isMac ? [{ role: 'appMenu' as const }] : []),
+    // Custom app menu (macOS) so Preferences can live under the app name.
+    ...(isMac
+      ? [
+          {
+            label: app.name,
+            submenu: [
+              { role: 'about' as const },
+              { type: 'separator' as const },
+              prefsItem,
+              { type: 'separator' as const },
+              { role: 'services' as const },
+              { type: 'separator' as const },
+              { role: 'hide' as const },
+              { role: 'hideOthers' as const },
+              { role: 'unhide' as const },
+              { type: 'separator' as const },
+              { role: 'quit' as const }
+            ]
+          } as MenuItemConstructorOptions
+        ]
+      : []),
     {
       label: 'Repository',
       submenu: [
@@ -86,7 +107,9 @@ function buildMenu(): void {
         commandItem('Switch / New Branch…', 'new-branch', 'CmdOrCtrl+B'),
         { type: 'separator' },
         commandItem('Commit', 'commit', 'CmdOrCtrl+Enter'),
-        commandItem('Describe Changes…', 'describe-changes', 'CmdOrCtrl+.')
+        commandItem('Describe Changes…', 'describe-changes', 'CmdOrCtrl+.'),
+        // On non-mac there's no app menu, so Preferences lives here.
+        ...(isMac ? [] : [{ type: 'separator' as const }, prefsItem])
       ]
     },
     {

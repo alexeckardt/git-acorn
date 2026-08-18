@@ -4,11 +4,11 @@ interface Props {
   repo: RepoInfo | null
   status: RepoStatus | null
   refreshing: boolean
-  onOpen: () => void
+  onSwitchRepo: () => void
   onRefresh: () => void
 }
 
-export default function TitleBar({ repo, status, refreshing, onOpen, onRefresh }: Props) {
+export default function TitleBar({ repo, status, refreshing, onSwitchRepo, onRefresh }: Props) {
   return (
     <div className="titlebar">
       <div className="titlebar-left">
@@ -47,8 +47,8 @@ export default function TitleBar({ repo, status, refreshing, onOpen, onRefresh }
             )}
           </button>
         )}
-        <button className="tb-btn primary" onClick={onOpen}>
-          Open repo…
+        <button className="tb-btn primary" onClick={onSwitchRepo}>
+          {repo ? 'Switch repo' : 'Open repo…'}
         </button>
       </div>
     </div>

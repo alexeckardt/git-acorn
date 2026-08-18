@@ -74,6 +74,12 @@ defineCommands([
   { id: 'new-branch', title: 'Switch / New Branch…', accel: { mod: true, key: 'b' } },
   { id: 'toggle-terminal', title: 'Terminal', accel: { mod: true, key: '`' }, allowInInput: true },
   {
+    id: 'preferences',
+    title: 'Preferences…',
+    accel: { mod: true, key: ',' },
+    allowInInput: true
+  },
+  {
     id: 'describe-changes',
     title: 'Describe Changes…',
     accel: { mod: true, key: '.' },

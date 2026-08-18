@@ -14,7 +14,10 @@ import CommitGraph from './components/CommitGraph'
 import DiffView, { DiffMode } from './components/DiffView'
 import TerminalModal from './components/TerminalModal'
 import BranchModal from './components/BranchModal'
+import PreferencesModal from './components/PreferencesModal'
+import SwitchRepoModal from './components/SwitchRepoModal'
 import { installShortcuts, registerCommand, runCommand } from './lib/commands'
+import { addRecentRepo, getRecentRepos, removeRecentRepo } from './lib/recentRepos'
 
 export default function App() {
   const [repo, setRepo] = useState<RepoInfo | null>(null)
@@ -37,6 +40,9 @@ export default function App() {
   const [graphHeight, setGraphHeight] = useState(360)
   const [terminalVisible, setTerminalVisible] = useState(false)
   const [newBranchOpen, setNewBranchOpen] = useState(false)
+  const [preferencesOpen, setPreferencesOpen] = useState(false)
+  const [switchRepoOpen, setSwitchRepoOpen] = useState(false)
+  const [switchError, setSwitchError] = useState<string | null>(null)
 
   // ---- data loading ------------------------------------------------------
 
@@ -67,11 +73,25 @@ export default function App() {
     }
   }, [loadStatus, loadLog, fileFilter])
 
-  // Initial: restore any already-open repo.
+  // On startup, restore the current repo, or the most recent that still opens.
   useEffect(() => {
-    window.gitApi.currentRepo().then((res) => {
-      if (res.ok && res.data) setRepo(res.data)
-    })
+    ;(async () => {
+      const cur = await window.gitApi.currentRepo()
+      if (cur.ok && cur.data) {
+        setRepo(cur.data)
+        addRecentRepo(cur.data)
+        return
+      }
+      for (const entry of getRecentRepos()) {
+        const res = await window.gitApi.setRepo(entry.path)
+        if (res.ok && res.data) {
+          setRepo(res.data)
+          addRecentRepo(res.data)
+          return
+        }
+        removeRecentRepo(entry.path) // stale (moved/deleted)
+      }
+    })()
   }, [])
 
   // Install keyboard shortcuts and receive native-menu command dispatches.
@@ -87,10 +107,11 @@ export default function App() {
   // Register the commands App owns (re-registered when `refresh` changes).
   useEffect(() => {
     const unsubs = [
-      registerCommand('open-repo', () => openRepo()),
+      registerCommand('open-repo', () => openSwitchRepo()),
       registerCommand('refresh', () => refresh()),
       registerCommand('new-branch', () => setNewBranchOpen(true)),
-      registerCommand('toggle-terminal', () => setTerminalVisible((v) => !v))
+      registerCommand('toggle-terminal', () => setTerminalVisible((v) => !v)),
+      registerCommand('preferences', () => setPreferencesOpen(true))
     ]
     return () => unsubs.forEach((u) => u())
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,15 +140,38 @@ export default function App() {
 
   // ---- actions -----------------------------------------------------------
 
-  async function openRepo() {
+  function handleRepoOpened(info: RepoInfo) {
+    setRepo(info)
+    addRecentRepo(info)
+    resetSelection()
+    setFileFilter(null)
+    setSwitchRepoOpen(false)
+    setSwitchError(null)
+  }
+
+  async function openRepoFromDialog() {
     const res = await window.gitApi.openRepoDialog()
     if (res.ok && res.data) {
-      setRepo(res.data)
-      resetSelection()
-      setFileFilter(null)
+      handleRepoOpened(res.data)
     } else if (res.error && res.error !== 'Cancelled') {
-      alert(res.error)
+      if (switchRepoOpen) setSwitchError(res.error)
+      else alert(res.error)
     }
+  }
+
+  async function switchToRepo(path: string) {
+    const res = await window.gitApi.setRepo(path)
+    if (res.ok && res.data) {
+      handleRepoOpened(res.data)
+    } else {
+      removeRecentRepo(path) // couldn't open — drop it from the list
+      setSwitchError(res.error ?? 'Could not open that repository')
+    }
+  }
+
+  function openSwitchRepo() {
+    setSwitchError(null)
+    setSwitchRepoOpen(true)
   }
 
   function resetSelection() {
@@ -210,7 +254,7 @@ export default function App() {
           repo={null}
           status={null}
           refreshing={false}
-          onOpen={openRepo}
+          onSwitchRepo={openSwitchRepo}
           onRefresh={() => {}}
         />
         <div className="welcome">
@@ -218,11 +262,20 @@ export default function App() {
             <div className="welcome-acorn">🌰</div>
             <h1>git-acorn</h1>
             <p>A small, streamlined git client for solo projects.</p>
-            <button className="tb-btn primary big" onClick={openRepo}>
+            <button className="tb-btn primary big" onClick={openRepoFromDialog}>
               Open a repository
             </button>
           </div>
         </div>
+        <PreferencesModal open={preferencesOpen} onClose={() => setPreferencesOpen(false)} />
+        <SwitchRepoModal
+          open={switchRepoOpen}
+          currentPath={null}
+          error={switchError}
+          onClose={() => setSwitchRepoOpen(false)}
+          onPick={switchToRepo}
+          onOpenNew={openRepoFromDialog}
+        />
       </div>
     )
   }
@@ -243,7 +296,7 @@ export default function App() {
         repo={repo}
         status={status}
         refreshing={refreshing}
-        onOpen={openRepo}
+        onSwitchRepo={openSwitchRepo}
         onRefresh={refresh}
       />
       <div className="body">
@@ -308,6 +361,15 @@ export default function App() {
         open={newBranchOpen}
         onClose={() => setNewBranchOpen(false)}
         onDone={refresh}
+      />
+      <PreferencesModal open={preferencesOpen} onClose={() => setPreferencesOpen(false)} />
+      <SwitchRepoModal
+        open={switchRepoOpen}
+        currentPath={repo.path}
+        error={switchError}
+        onClose={() => setSwitchRepoOpen(false)}
+        onPick={switchToRepo}
+        onOpenNew={openRepoFromDialog}
       />
     </div>
   )

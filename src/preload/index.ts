@@ -17,7 +17,9 @@ const api: GitApi = {
   commit: (summary, description) => ipcRenderer.invoke('git:commit', summary, description),
   addToGitignore: (paths) => ipcRenderer.invoke('git:addToGitignore', paths),
   hideLocally: (paths) => ipcRenderer.invoke('git:hideLocally', paths),
-  createBranch: (name) => ipcRenderer.invoke('git:createBranch', name)
+  createBranch: (name) => ipcRenderer.invoke('git:createBranch', name),
+  branches: () => ipcRenderer.invoke('git:branches'),
+  switchBranch: (name) => ipcRenderer.invoke('git:switchBranch', name)
 }
 
 contextBridge.exposeInMainWorld('gitApi', api)

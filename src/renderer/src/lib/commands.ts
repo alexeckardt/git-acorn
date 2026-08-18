@@ -71,7 +71,7 @@ export function isTextTarget(el: EventTarget | null): boolean {
 defineCommands([
   { id: 'open-repo', title: 'Open Repository…', accel: { mod: true, key: 'o' } },
   { id: 'refresh', title: 'Refresh', accel: { mod: true, key: 'r' } },
-  { id: 'new-branch', title: 'New Branch…', accel: { mod: true, key: 'b' } },
+  { id: 'new-branch', title: 'Switch / New Branch…', accel: { mod: true, key: 'b' } },
   { id: 'toggle-terminal', title: 'Terminal', accel: { mod: true, key: '`' }, allowInInput: true },
   {
     id: 'describe-changes',

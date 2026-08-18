@@ -92,8 +92,12 @@ export interface GitApi {
   unstageAll: () => Promise<GitResult<void>>
   discard: (paths: string[]) => Promise<GitResult<void>>
   commit: (summary: string, description: string) => Promise<GitResult<void>>
-  /** Create a new branch and switch to it. */
+  /** Create a new branch and switch to it (carries over uncommitted changes). */
   createBranch: (name: string) => Promise<GitResult<void>>
+  /** List local branches and the current branch. */
+  branches: () => Promise<GitResult<{ current: string; all: string[] }>>
+  /** Switch to an existing branch (carries over uncommitted changes). */
+  switchBranch: (name: string) => Promise<GitResult<void>>
   /** Append the paths to the repo's committed .gitignore. */
   addToGitignore: (paths: string[]) => Promise<GitResult<void>>
   /**

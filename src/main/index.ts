@@ -83,7 +83,7 @@ function buildMenu(): void {
         commandItem('Open Repository…', 'open-repo', 'CmdOrCtrl+O'),
         commandItem('Refresh', 'refresh', 'CmdOrCtrl+R'),
         { type: 'separator' },
-        commandItem('New Branch…', 'new-branch', 'CmdOrCtrl+B'),
+        commandItem('Switch / New Branch…', 'new-branch', 'CmdOrCtrl+B'),
         { type: 'separator' },
         commandItem('Commit', 'commit', 'CmdOrCtrl+Enter'),
         commandItem('Describe Changes…', 'describe-changes', 'CmdOrCtrl+.')
@@ -178,6 +178,8 @@ function registerIpc(): void {
     wrap(() => g.commit(summary, description))
   )
   ipcMain.handle('git:createBranch', (_e, name: string) => wrap(() => g.createBranch(name)))
+  ipcMain.handle('git:branches', () => wrap(() => g.branches()))
+  ipcMain.handle('git:switchBranch', (_e, name: string) => wrap(() => g.switchBranch(name)))
   ipcMain.handle('git:addToGitignore', (_e, paths: string[]) =>
     wrap(() => g.addToGitignore(paths))
   )

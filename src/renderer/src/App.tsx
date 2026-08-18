@@ -13,7 +13,7 @@ import CommitInfoPanel from './components/CommitInfoPanel'
 import CommitGraph from './components/CommitGraph'
 import DiffView, { DiffMode } from './components/DiffView'
 import TerminalModal from './components/TerminalModal'
-import NewBranchModal from './components/NewBranchModal'
+import BranchModal from './components/BranchModal'
 import { installShortcuts, registerCommand, runCommand } from './lib/commands'
 
 export default function App() {
@@ -304,10 +304,10 @@ export default function App() {
         onHide={() => setTerminalVisible(false)}
         repoName={repo.name}
       />
-      <NewBranchModal
+      <BranchModal
         open={newBranchOpen}
         onClose={() => setNewBranchOpen(false)}
-        onCreated={refresh}
+        onDone={refresh}
       />
     </div>
   )

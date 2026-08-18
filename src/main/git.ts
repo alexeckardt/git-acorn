@@ -438,7 +438,31 @@ export async function commit(summary: string, description: string): Promise<void
 export async function createBranch(name: string): Promise<void> {
   const trimmed = name.trim()
   if (!trimmed) throw new Error('Branch name is required')
+  // `checkout -b` keeps the working tree, so uncommitted changes come along.
   await git(['checkout', '-b', trimmed])
+}
+
+export async function branches(): Promise<{ current: string; all: string[] }> {
+  const out = await git(['branch', '--format=%(refname:short)'])
+  const all = out
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  let current = ''
+  try {
+    current = (await git(['branch', '--show-current'])).trim()
+  } catch {
+    /* detached HEAD */
+  }
+  return { current, all }
+}
+
+export async function switchBranch(name: string): Promise<void> {
+  const trimmed = name.trim()
+  if (!trimmed) throw new Error('Branch name is required')
+  // Plain checkout carries uncommitted changes to the target branch (and errors
+  // rather than discarding if they would conflict).
+  await git(['checkout', trimmed])
 }
 
 /** Append a single anchored line to an ignore-style file, skipping duplicates. */

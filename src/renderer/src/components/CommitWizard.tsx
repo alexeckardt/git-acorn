@@ -255,8 +255,8 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
                   onChange={(e) => setCreatePR(e.target.checked)}
                 />
                 <span>
-                  Open a pull request for this branch
-                  <span className="muted small"> — runs gh pr create --fill</span>
+                  Push this branch and open a pull request
+                  <span className="muted small"> — git push, then gh pr create --fill</span>
                 </span>
               </label>
             )}
@@ -279,7 +279,7 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
             <div className="wizard-summary-line">
               Commit <strong>{stagedFiles.length}</strong> file
               {stagedFiles.length === 1 ? '' : 's'} to <strong>{currentBranch}</strong>
-              {createPR && canOfferPR && ghOK ? ' and open a PR' : ''}.
+              {createPR && canOfferPR && ghOK ? ', then push and open a PR' : ''}.
             </div>
 
             <div className="wizard-actions">

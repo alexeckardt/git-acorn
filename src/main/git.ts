@@ -529,8 +529,12 @@ export async function branchHasPR(branch: string): Promise<boolean> {
   }
 }
 
-/** Create a PR for the current branch with `gh pr create --fill`. Returns its URL. */
+/** Push the current branch to origin, then open a PR. Returns the PR URL. */
 export async function createPR(): Promise<string> {
+  const branch = (await git(['branch', '--show-current'])).trim()
+  // gh can't push non-interactively, so publish the branch to origin first
+  // (also pushes the commit we just made and sets the upstream).
+  await git(['push', '--set-upstream', 'origin', branch || 'HEAD'])
   return (await runCmd('gh', ['pr', 'create', '--fill'])).trim()
 }
 

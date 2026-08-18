@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process'
-import { basename } from 'node:path'
+import { existsSync } from 'node:fs'
+import { appendFile, readFile, writeFile } from 'node:fs/promises'
+import { basename, join, resolve } from 'node:path'
 import type {
   ChangedFile,
   Commit,
@@ -431,4 +433,61 @@ export async function commit(summary: string, description: string): Promise<void
     args.push('-m', description)
   }
   await git(args)
+}
+
+/** Append a single anchored line to an ignore-style file, skipping duplicates. */
+async function appendUniqueLine(file: string, entry: string): Promise<void> {
+  let existing = ''
+  try {
+    existing = await readFile(file, 'utf8')
+  } catch {
+    /* file may not exist yet */
+  }
+  const present = new Set(
+    existing
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+  )
+  if (present.has(entry)) return
+  const needsNewline = existing.length > 0 && !existing.endsWith('\n')
+  await appendFile(file, `${needsNewline ? '\n' : ''}${entry}\n`)
+}
+
+export async function addToGitignore(paths: string[]): Promise<void> {
+  if (!repoPath) throw new Error('No repository is open')
+  const file = join(repoPath, '.gitignore')
+  for (const p of paths) {
+    // Anchor with a leading slash so it matches this exact path from the root.
+    await appendUniqueLine(file, `/${p}`)
+  }
+}
+
+export async function hideLocally(paths: string[]): Promise<void> {
+  if (!repoPath) throw new Error('No repository is open')
+  const excludeFile = await excludeFilePath()
+  for (const p of paths) {
+    if (await isTracked(p)) {
+      // Tracked: keep the file but tell git to ignore local modifications.
+      await git(['update-index', '--skip-worktree', '--', p])
+    } else {
+      // Untracked: add to the repo's personal (uncommitted) exclude file.
+      await appendUniqueLine(excludeFile, `/${p}`)
+    }
+  }
+}
+
+/** Path to the repo's .gitignore, creating an empty one if it doesn't exist. */
+export async function gitignorePath(): Promise<string> {
+  if (!repoPath) throw new Error('No repository is open')
+  const file = join(repoPath, '.gitignore')
+  if (!existsSync(file)) await writeFile(file, '')
+  return file
+}
+
+/** Path to the repo's local exclude file (.git/info/exclude). */
+export async function excludeFilePath(): Promise<string> {
+  if (!repoPath) throw new Error('No repository is open')
+  const rel = (await git(['rev-parse', '--git-path', 'info/exclude'])).trim()
+  return resolve(repoPath, rel)
 }

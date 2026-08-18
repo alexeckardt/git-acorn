@@ -1,4 +1,12 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  MenuItemConstructorOptions,
+  shell
+} from 'electron'
 import { join } from 'node:path'
 import * as g from './git'
 import type { DiffSource, GitResult } from '../shared/types'
@@ -32,6 +40,48 @@ function createWindow(): void {
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
+}
+
+/** Open a file in the OS default app, surfacing "no repo" and similar errors. */
+async function openPath(resolver: () => Promise<string>): Promise<void> {
+  try {
+    const p = await resolver()
+    const err = await shell.openPath(p)
+    if (err) dialog.showErrorBox('git-acorn', err)
+  } catch (e) {
+    dialog.showErrorBox('git-acorn', (e as Error).message)
+  }
+}
+
+function buildMenu(): void {
+  const isMac = process.platform === 'darwin'
+  const template: MenuItemConstructorOptions[] = [
+    ...(isMac ? [{ role: 'appMenu' as const }] : []),
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+        { type: 'separator' },
+        {
+          label: 'Open .gitignore',
+          click: () => openPath(() => g.gitignorePath())
+        },
+        {
+          label: 'Open Local Excludes (Hidden Files)',
+          click: () => openPath(() => g.excludeFilePath())
+        }
+      ]
+    },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' }
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
 /** Wrap a git operation so the renderer always receives {ok, data?, error?}. */
@@ -73,10 +123,15 @@ function registerIpc(): void {
   ipcMain.handle('git:commit', (_e, summary: string, description: string) =>
     wrap(() => g.commit(summary, description))
   )
+  ipcMain.handle('git:addToGitignore', (_e, paths: string[]) =>
+    wrap(() => g.addToGitignore(paths))
+  )
+  ipcMain.handle('git:hideLocally', (_e, paths: string[]) => wrap(() => g.hideLocally(paths)))
 }
 
 app.whenReady().then(() => {
   registerIpc()
+  buildMenu()
   createWindow()
 
   app.on('activate', () => {

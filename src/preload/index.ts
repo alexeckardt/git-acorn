@@ -14,7 +14,9 @@ const api: GitApi = {
   stageAll: () => ipcRenderer.invoke('git:stageAll'),
   unstageAll: () => ipcRenderer.invoke('git:unstageAll'),
   discard: (paths) => ipcRenderer.invoke('git:discard', paths),
-  commit: (summary, description) => ipcRenderer.invoke('git:commit', summary, description)
+  commit: (summary, description) => ipcRenderer.invoke('git:commit', summary, description),
+  addToGitignore: (paths) => ipcRenderer.invoke('git:addToGitignore', paths),
+  hideLocally: (paths) => ipcRenderer.invoke('git:hideLocally', paths)
 }
 
 contextBridge.exposeInMainWorld('gitApi', api)

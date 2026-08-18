@@ -17,6 +17,7 @@ interface Props {
   indent?: number
   /** Show only the filename, not the directory prefix (for tree mode). */
   nameOnly?: boolean
+  onContextMenu?: (e: React.MouseEvent) => void
 }
 
 export default function FileRow({
@@ -25,7 +26,8 @@ export default function FileRow({
   onSelect,
   actions = [],
   indent,
-  nameOnly
+  nameOnly,
+  onContextMenu
 }: Props) {
   const badge = statusBadge(file.status)
   const { dir, name } = splitPath(file.path)
@@ -34,6 +36,7 @@ export default function FileRow({
       className={`file-row${selected ? ' selected' : ''}`}
       style={indent != null ? { paddingLeft: indent } : undefined}
       onClick={onSelect}
+      onContextMenu={onContextMenu}
       title={file.path}
     >
       <span className={`status-badge ${badge.cls}`}>{badge.letter}</span>

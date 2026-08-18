@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { RepoStatus } from '../../../shared/types'
+import DescriptionWriter, { DescEntry } from './DescriptionWriter'
 
 interface Props {
   status: RepoStatus
   onCommitted: () => void
 }
+
+const AUTO_KEY = 'git-acorn.autoDescribe'
 
 export default function CommitBox({ status, onCommitted }: Props) {
   const [summary, setSummary] = useState('')
@@ -12,14 +15,48 @@ export default function CommitBox({ status, onCommitted }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const [showWriter, setShowWriter] = useState(false)
+  // 'commit' → commit once the flow finishes; 'manual' → just fill the description.
+  const [writerMode, setWriterMode] = useState<'commit' | 'manual'>('manual')
+  const [autoDescribe, setAutoDescribe] = useState(() => {
+    const v = localStorage.getItem(AUTO_KEY)
+    return v === null ? true : v === '1'
+  })
+
+  useEffect(() => {
+    localStorage.setItem(AUTO_KEY, autoDescribe ? '1' : '0')
+  }, [autoDescribe])
+
   const stagedCount = status.staged.length
   const canCommit = summary.trim().length > 0 && stagedCount > 0 && !busy
 
-  async function doCommit() {
-    if (!canCommit) return
+  // The describer works on the files being committed (staged), or — when nothing
+  // is staged yet — on the working changes, so it isn't blocked by staging.
+  const describeFiles = stagedCount > 0 ? status.staged : status.unstaged
+
+  function openWriter(mode: 'commit' | 'manual') {
+    if (describeFiles.length === 0) return
+    setWriterMode(mode)
+    setShowWriter(true)
+  }
+
+  // ⌘/Ctrl + .  opens the describer manually.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === '.') {
+        e.preventDefault()
+        if (!showWriter) openWriter('manual')
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showWriter, describeFiles.length])
+
+  async function performCommit(desc: string) {
     setBusy(true)
     setError(null)
-    const res = await window.gitApi.commit(summary.trim(), description)
+    const res = await window.gitApi.commit(summary.trim(), desc)
     setBusy(false)
     if (res.ok) {
       setSummary('')
@@ -27,6 +64,32 @@ export default function CommitBox({ status, onCommitted }: Props) {
       onCommitted()
     } else {
       setError(res.error ?? 'Commit failed')
+    }
+  }
+
+  function doCommit() {
+    if (!canCommit) return
+    if (!description.trim() && autoDescribe && stagedCount > 0) {
+      openWriter('commit')
+      return
+    }
+    performCommit(description)
+  }
+
+  function handleWriterFinish(entries: DescEntry[], completed: boolean) {
+    setShowWriter(false)
+    const bullets = entries
+      .filter((e) => e.text.trim())
+      .map((e) => `- ${e.text.trim()}`)
+      .join('\n')
+    const newDesc = bullets
+      ? description.trim()
+        ? `${description.trimEnd()}\n${bullets}`
+        : bullets
+      : description
+    if (bullets) setDescription(newDesc)
+    if (writerMode === 'commit' && completed) {
+      performCommit(newDesc)
     }
   }
 
@@ -52,6 +115,26 @@ export default function CommitBox({ status, onCommitted }: Props) {
         onChange={(e) => setDescription(e.target.value)}
         rows={3}
       />
+
+      <div className="commit-tools">
+        <button
+          className="text-btn"
+          onClick={() => openWriter('manual')}
+          disabled={describeFiles.length === 0}
+          title="Describe changes file-by-file (⌘.)"
+        >
+          ✎ Describe changes
+        </button>
+        <label className="auto-toggle" title="Run the describer automatically when committing with no description">
+          <input
+            type="checkbox"
+            checked={autoDescribe}
+            onChange={(e) => setAutoDescribe(e.target.checked)}
+          />
+          Auto on commit
+        </label>
+      </div>
+
       {error && <div className="commit-error">{error}</div>}
       <button className="commit-btn" disabled={!canCommit} onClick={doCommit}>
         {busy
@@ -59,6 +142,10 @@ export default function CommitBox({ status, onCommitted }: Props) {
           : `Commit ${stagedCount > 0 ? `${stagedCount} file${stagedCount === 1 ? '' : 's'}` : ''}`}
         <span className="commit-branch">{status.branch}</span>
       </button>
+
+      {showWriter && describeFiles.length > 0 && (
+        <DescriptionWriter files={describeFiles} onFinish={handleWriterFinish} />
+      )}
     </div>
   )
 }

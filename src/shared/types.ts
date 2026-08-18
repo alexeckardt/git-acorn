@@ -92,4 +92,12 @@ export interface GitApi {
   unstageAll: () => Promise<GitResult<void>>
   discard: (paths: string[]) => Promise<GitResult<void>>
   commit: (summary: string, description: string) => Promise<GitResult<void>>
+  /** Append the paths to the repo's committed .gitignore. */
+  addToGitignore: (paths: string[]) => Promise<GitResult<void>>
+  /**
+   * Hide the paths from the changes list without touching .gitignore:
+   * untracked files go into .git/info/exclude, tracked files get
+   * `git update-index --skip-worktree`.
+   */
+  hideLocally: (paths: string[]) => Promise<GitResult<void>>
 }

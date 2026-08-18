@@ -21,7 +21,7 @@ export default function CommitInfoPanel({
   if (loading || !detail) {
     return (
       <div className="commit-info">
-        <button className="text-btn back-btn" onClick={onBack}>
+        <button className="card-btn back-btn" onClick={onBack}>
           ← Back to changes
         </button>
         <div className="empty-hint">Loading commit…</div>
@@ -35,7 +35,7 @@ export default function CommitInfoPanel({
 
   return (
     <div className="commit-info">
-      <button className="text-btn back-btn" onClick={onBack}>
+      <button className="card-btn back-btn" onClick={onBack}>
         ← Back to changes
       </button>
 

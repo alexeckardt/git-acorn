@@ -314,6 +314,19 @@ code {
 .text-btn:hover {
   color: var(--accent-2);
 }
+.card-btn {
+  background: var(--accent-2);
+  border: none;
+  color: var(--bg-0);
+  font-size: 11px;
+  padding: 0;
+  width: fit-content;
+  border-radius: 5pt;
+  margin: 10px;
+}
+.card-btn:hover {
+  background: var(--accent);
+}
 
 .file-list {
   overflow-y: auto;

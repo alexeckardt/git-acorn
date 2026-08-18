@@ -1,21 +1,22 @@
 :root {
-  --bg-0: #0d130d;
-  --bg-1: #161516;
-  --bg-2: #0d0f0e;
-  --bg-3: #161b17;
-  --bg-hover: #233529;
-  --bg-sel: #23324a;
-  --border: #263728;
-  --border-strong: #334936;
-  --text: #d7e4d7;
-  --text-dim: #9ea58b;
-  --text-faint: #75645c;
-  --accent: #5df476;
-  --accent-2: #5be286;
-  --green: #57c07d;
-  --red: #e06c75;
-  --amber: #e2b93b;
-  --purple: #c792ea;
+  /* Desaturated purple/slate palette. */
+  --bg-0: #14121a;
+  --bg-1: #1a1723;
+  --bg-2: #161320;
+  --bg-3: #221d2e;
+  --bg-hover: #29233680;
+  --bg-sel: #35294d;
+  --border: #2a2438;
+  --border-strong: #382f4a;
+  --text: #ddd8e6;
+  --text-dim: #9a93ab;
+  --text-faint: #6c6480;
+  --accent: #a68fd6;
+  --accent-2: #bda6e6;
+  --green: #7fc9a0;
+  --red: #e0919b;
+  --amber: #d8be7a;
+  --purple: #c0a6e6;
   --radius: 8px;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --mono: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
@@ -36,7 +37,13 @@ body {
   font-family: var(--font);
   font-size: 13px;
   color: var(--text);
-  background: var(--bg-0);
+  /* Soft, desaturated purple glow sitting behind everything. */
+  background:
+    radial-gradient(1200px 820px at 20% -10%, rgba(158, 130, 212, 0.16), transparent 60%),
+    radial-gradient(1000px 700px at 88% 4%, rgba(150, 120, 205, 0.16), transparent 55%),
+    radial-gradient(950px 650px at 105% 115%, rgba(120, 104, 182, 0.12), transparent 55%),
+    var(--bg-0);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
@@ -317,7 +324,7 @@ code {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 12px;
+  padding: 6px 12px;
   cursor: pointer;
   border-left: 2px solid transparent;
 }
@@ -331,10 +338,10 @@ code {
 
 .status-badge {
   flex: 0 0 auto;
-  width: 16px;
+  width: 18px;
   text-align: center;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   border-radius: 3px;
 }
@@ -384,10 +391,10 @@ code {
   background: none;
   border: none;
   color: var(--text-dim);
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  font-size: 12px;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  font-size: 15px;
   line-height: 1;
   padding: 0;
 }
@@ -413,13 +420,26 @@ code {
   color: var(--red);
 }
 
-/* ---- File tree (folders) --------------------------------------------- */
+/* ---- File tree (folders + guide lines) ------------------------------- */
+
+.tree-row {
+  position: relative;
+}
+/* Vertical guide running down from a folder through its descendants. */
+.tree-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-strong);
+  pointer-events: none;
+}
 
 .tree-folder {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
+  gap: 6px;
+  padding: 6px 12px;
   cursor: pointer;
   color: var(--text-dim);
   user-select: none;
@@ -429,18 +449,26 @@ code {
 }
 .chevron {
   display: inline-block;
-  width: 12px;
-  font-size: 10px;
+  width: 14px;
+  font-size: 12px;
+  text-align: center;
   transition: transform 0.12s;
   color: var(--text-faint);
 }
 .chevron.collapsed {
   transform: rotate(-90deg);
 }
+.folder-icon {
+  display: block;
+  flex: 0 0 auto;
+  color: var(--accent);
+  opacity: 0.85;
+}
 .folder-name {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 13px;
 }
 
 /* ---- Commit box ------------------------------------------------------- */
@@ -589,7 +617,8 @@ code {
   flex-direction: column;
   min-height: 0;
   flex: 1;
-  background: var(--bg-0);
+  /* Transparent so the body's purple gradient shows through the graph. */
+  background: transparent;
 }
 
 .filter-banner {

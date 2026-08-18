@@ -71,6 +71,20 @@ export interface RepoInfo {
   name: string
 }
 
+export interface PullRequest {
+  number: number
+  url: string
+  /** The PR's head branch (headRefName). */
+  branch: string
+  title: string
+  state: string
+}
+
+export interface MergeResult {
+  conflict: boolean
+  message: string
+}
+
 export interface GitResult<T> {
   ok: boolean
   data?: T
@@ -114,6 +128,18 @@ export interface GitApi {
    * `git update-index --skip-worktree`.
    */
   hideLocally: (paths: string[]) => Promise<GitResult<void>>
+  /** Rename a branch. */
+  renameBranch: (oldName: string, newName: string) => Promise<GitResult<void>>
+  /** Delete a branch (force uses -D). */
+  deleteBranch: (name: string, force: boolean) => Promise<GitResult<void>>
+  /** Merge a branch into the current one; reports whether it conflicted. */
+  mergeBranch: (name: string) => Promise<GitResult<MergeResult>>
+  /** Open PRs in the repo (best-effort via gh), keyed by head branch. */
+  listPRs: () => Promise<GitResult<PullRequest[]>>
+  /** Open the repo folder in the user's code editor (VS Code, …). */
+  openInEditor: () => Promise<GitResult<void>>
+  /** Open a URL in the default browser. */
+  openExternal: (url: string) => Promise<GitResult<void>>
 }
 
 /** Bridge for the embedded terminal (main process runs a shell session). */

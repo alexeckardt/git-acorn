@@ -4,6 +4,7 @@ import type {
   Commit,
   CommitDetail,
   DiffSource,
+  PullRequest,
   RepoInfo,
   RepoStatus
 } from '../../shared/types'
@@ -44,6 +45,11 @@ export default function App() {
   const [switchRepoOpen, setSwitchRepoOpen] = useState(false)
   const [switchError, setSwitchError] = useState<string | null>(null)
 
+  const [prs, setPrs] = useState<PullRequest[]>([])
+  const [renameTarget, setRenameTarget] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [mergeConflictBranch, setMergeConflictBranch] = useState<string | null>(null)
+
   // ---- data loading ------------------------------------------------------
 
   const loadStatus = useCallback(async () => {
@@ -62,16 +68,21 @@ export default function App() {
     }
   }, [])
 
+  const loadPRs = useCallback(async () => {
+    const res = await window.gitApi.listPRs()
+    setPrs(res.ok && res.data ? res.data : [])
+  }, [])
+
   const refresh = useCallback(async () => {
     setRefreshing(true)
     // Floor the spinner at ~450ms so the animation reads as a deliberate action.
     const minSpin = new Promise((r) => setTimeout(r, 450))
     try {
-      await Promise.all([loadStatus(), loadLog(fileFilter), minSpin])
+      await Promise.all([loadStatus(), loadLog(fileFilter), loadPRs(), minSpin])
     } finally {
       setRefreshing(false)
     }
-  }, [loadStatus, loadLog, fileFilter])
+  }, [loadStatus, loadLog, loadPRs, fileFilter])
 
   // On startup, restore the current repo, or the most recent that still opens.
   useEffect(() => {
@@ -181,6 +192,56 @@ export default function App() {
     setDiffTitle('')
   }
 
+  // ---- branch operations (from the graph's right-click menu) --------------
+
+  async function checkoutBranch(name: string) {
+    const res = await window.gitApi.switchBranch(name)
+    if (res.ok) refresh()
+    else alert(res.error)
+  }
+
+  function startRenameBranch(name: string) {
+    setRenameTarget(name)
+    setRenameValue(name)
+  }
+
+  async function submitRenameBranch() {
+    if (!renameTarget || !renameValue.trim()) return
+    const res = await window.gitApi.renameBranch(renameTarget, renameValue.trim())
+    setRenameTarget(null)
+    if (res.ok) refresh()
+    else alert(res.error)
+  }
+
+  async function deleteBranch(name: string) {
+    if (!confirm(`Delete branch "${name}"?`)) return
+    let res = await window.gitApi.deleteBranch(name, false)
+    if (!res.ok) {
+      // Not fully merged — offer a force delete.
+      if (confirm(`"${name}" isn't fully merged. Delete it anyway?`)) {
+        res = await window.gitApi.deleteBranch(name, true)
+      } else {
+        return
+      }
+    }
+    if (res.ok) refresh()
+    else alert(res.error)
+  }
+
+  async function mergeBranch(name: string) {
+    const res = await window.gitApi.mergeBranch(name)
+    refresh()
+    if (res.ok && res.data?.conflict) {
+      setMergeConflictBranch(name)
+    } else if (!res.ok) {
+      alert(res.error)
+    }
+  }
+
+  function openPR(url: string) {
+    window.gitApi.openExternal(url)
+  }
+
   function selectWorkingFile(file: ChangedFile) {
     setSelectedCommit(null)
     setDiffSource({
@@ -255,6 +316,7 @@ export default function App() {
           status={null}
           refreshing={false}
           onSwitchRepo={openSwitchRepo}
+          onSwitchBranch={() => setNewBranchOpen(true)}
           onRefresh={() => {}}
         />
         <div className="welcome">
@@ -297,6 +359,7 @@ export default function App() {
         status={status}
         refreshing={refreshing}
         onSwitchRepo={openSwitchRepo}
+        onSwitchBranch={() => setNewBranchOpen(true)}
         onRefresh={refresh}
       />
       <div className="body">
@@ -333,11 +396,17 @@ export default function App() {
               <CommitGraph
                 commits={commits}
                 status={status}
+                prs={prs}
                 selected={selectedCommit === null ? 'working' : selectedCommit}
                 onSelectCommit={selectCommit}
                 onSelectWorking={backToWorking}
                 fileFilter={fileFilter}
                 onClearFilter={() => setFileFilter(null)}
+                onCheckoutBranch={checkoutBranch}
+                onRenameBranch={startRenameBranch}
+                onDeleteBranch={deleteBranch}
+                onMergeBranch={mergeBranch}
+                onOpenPR={openPR}
               />
             )}
           </div>
@@ -371,6 +440,69 @@ export default function App() {
         onPick={switchToRepo}
         onOpenNew={openRepoFromDialog}
       />
+
+      {renameTarget !== null && (
+        <div
+          className="modal-overlay"
+          onMouseDown={(e) => e.target === e.currentTarget && setRenameTarget(null)}
+        >
+          <div className="small-modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="small-modal-title">Rename branch</div>
+            <input
+              className="small-modal-input"
+              autoFocus
+              value={renameValue}
+              spellCheck={false}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submitRenameBranch()
+                else if (e.key === 'Escape') setRenameTarget(null)
+              }}
+            />
+            <div className="small-modal-actions">
+              <button className="tb-btn" onClick={() => setRenameTarget(null)}>
+                Cancel
+              </button>
+              <button
+                className="tb-btn primary"
+                disabled={!renameValue.trim()}
+                onClick={submitRenameBranch}
+              >
+                Rename
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mergeConflictBranch !== null && (
+        <div
+          className="modal-overlay"
+          onMouseDown={(e) => e.target === e.currentTarget && setMergeConflictBranch(null)}
+        >
+          <div className="small-modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="small-modal-title">Merge conflict</div>
+            <div className="prefs-row-desc">
+              Merging <strong>{mergeConflictBranch}</strong> hit conflicts. Open the repository in
+              your code editor to resolve them, then commit the merge.
+            </div>
+            <div className="small-modal-actions">
+              <button className="tb-btn" onClick={() => setMergeConflictBranch(null)}>
+                Later
+              </button>
+              <button
+                className="tb-btn primary"
+                onClick={() => {
+                  window.gitApi.openInEditor()
+                  setMergeConflictBranch(null)
+                }}
+              >
+                Open in editor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

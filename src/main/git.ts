@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { appendFile, readFile, writeFile } from 'node:fs/promises'
+import { appendFile, readFile, unlink, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import type {
   ChangedFile,
@@ -428,11 +429,19 @@ export async function discard(paths: string[]): Promise<void> {
 }
 
 export async function commit(summary: string, description: string): Promise<void> {
-  const args = ['commit', '-m', summary]
-  if (description.trim()) {
-    args.push('-m', description)
+  const subject = summary.trim()
+  if (!subject) throw new Error('A commit summary is required')
+  const body = description.trim()
+  const message = body ? `${subject}\n\n${body}\n` : `${subject}\n`
+  // Pass the message via a temp file (git commit -F) so arbitrary content —
+  // newlines, leading dashes, quotes — is never touched by argument parsing.
+  const file = join(tmpdir(), `git-acorn-commit-${Date.now()}-${process.pid}.txt`)
+  await writeFile(file, message, 'utf8')
+  try {
+    await git(['commit', '-F', file])
+  } finally {
+    await unlink(file).catch(() => {})
   }
-  await git(args)
 }
 
 export async function createBranch(name: string): Promise<void> {

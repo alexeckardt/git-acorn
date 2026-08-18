@@ -18,7 +18,7 @@ const RS = '\x1e' // record separator between commits
 let repoPath: string | null = null
 
 /** Run a git command in the current repo (or a given cwd) and return stdout. */
-function git(args: string[], cwd?: string): Promise<string> {
+function git(args: string[], cwd?: string, opts?: { allowCode1?: boolean }): Promise<string> {
   const dir = cwd ?? repoPath
   if (!dir) return Promise.reject(new Error('No repository is open'))
   return new Promise((resolve, reject) => {
@@ -28,6 +28,12 @@ function git(args: string[], cwd?: string): Promise<string> {
       { cwd: dir, maxBuffer: 64 * 1024 * 1024, windowsHide: true },
       (err, stdout, stderr) => {
         if (err) {
+          // Diff commands (notably `--no-index`) exit 1 when differences exist;
+          // that's success for our purposes, so surface stdout instead.
+          if (opts?.allowCode1 && (err as { code?: number }).code === 1) {
+            resolve(stdout.toString())
+            return
+          }
           reject(new Error(stderr?.toString().trim() || err.message))
           return
         }
@@ -35,6 +41,16 @@ function git(args: string[], cwd?: string): Promise<string> {
       }
     )
   })
+}
+
+/** Whether git currently tracks a path (i.e. it exists in the index/HEAD). */
+async function isTracked(path: string): Promise<boolean> {
+  try {
+    await git(['ls-files', '--error-unmatch', '--', path])
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function getRepoPath(): string | null {
@@ -354,8 +370,16 @@ function parseNumstat(
 
 export async function diff(source: DiffSource): Promise<string> {
   switch (source.kind) {
-    case 'workingUnstaged':
+    case 'workingUnstaged': {
+      // Untracked (newly added) files produce no `git diff` output because git
+      // isn't tracking them yet. Show the whole file as added via --no-index.
+      if (!(await isTracked(source.path))) {
+        return git(['diff', '--no-index', '--', '/dev/null', source.path], undefined, {
+          allowCode1: true
+        })
+      }
       return git(['diff', '--', source.path])
+    }
     case 'workingStaged':
       return git(['diff', '--cached', '--', source.path])
     case 'commit':

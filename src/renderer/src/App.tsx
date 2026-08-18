@@ -29,6 +29,7 @@ export default function App() {
   const [diffMode, setDiffMode] = useState<DiffMode>('side-by-side')
 
   const [fileFilter, setFileFilter] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   const [graphHeight, setGraphHeight] = useState(360)
 
@@ -51,7 +52,14 @@ export default function App() {
   }, [])
 
   const refresh = useCallback(async () => {
-    await Promise.all([loadStatus(), loadLog(fileFilter)])
+    setRefreshing(true)
+    // Floor the spinner at ~450ms so the animation reads as a deliberate action.
+    const minSpin = new Promise((r) => setTimeout(r, 450))
+    try {
+      await Promise.all([loadStatus(), loadLog(fileFilter), minSpin])
+    } finally {
+      setRefreshing(false)
+    }
   }, [loadStatus, loadLog, fileFilter])
 
   // Initial: restore any already-open repo.
@@ -66,6 +74,21 @@ export default function App() {
     if (repo) refresh()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo, fileFilter])
+
+  // Auto-refresh whenever the user returns to the app (window focus / tab back).
+  useEffect(() => {
+    if (!repo) return
+    const onFocus = () => refresh()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [repo, refresh])
 
   // ---- actions -----------------------------------------------------------
 
@@ -156,7 +179,13 @@ export default function App() {
   if (!repo) {
     return (
       <div className="app">
-        <TitleBar repo={null} status={null} onOpen={openRepo} onRefresh={() => {}} />
+        <TitleBar
+          repo={null}
+          status={null}
+          refreshing={false}
+          onOpen={openRepo}
+          onRefresh={() => {}}
+        />
         <div className="welcome">
           <div className="welcome-card">
             <div className="welcome-acorn">🌰</div>
@@ -183,7 +212,13 @@ export default function App() {
 
   return (
     <div className="app">
-      <TitleBar repo={repo} status={status} onOpen={openRepo} onRefresh={refresh} />
+      <TitleBar
+        repo={repo}
+        status={status}
+        refreshing={refreshing}
+        onOpen={openRepo}
+        onRefresh={refresh}
+      />
       <div className="body">
         <aside className="sidebar">
           {selectedCommit === null ? (

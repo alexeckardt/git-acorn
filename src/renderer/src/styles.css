@@ -1,17 +1,17 @@
 :root {
-  --bg-0: #0d0f13;
-  --bg-1: #12151b;
-  --bg-2: #171b22;
-  --bg-3: #1e232c;
-  --bg-hover: #232935;
+  --bg-0: #0d130d;
+  --bg-1: #161516;
+  --bg-2: #0d0f0e;
+  --bg-3: #161b17;
+  --bg-hover: #233529;
   --bg-sel: #23324a;
-  --border: #262c37;
-  --border-strong: #333b49;
-  --text: #d7dce4;
-  --text-dim: #8b95a5;
-  --text-faint: #5c6675;
-  --accent: #4c9aff;
-  --accent-2: #6ea8ff;
+  --border: #263728;
+  --border-strong: #334936;
+  --text: #d7e4d7;
+  --text-dim: #9ea58b;
+  --text-faint: #75645c;
+  --accent: #5df476;
+  --accent-2: #5be286;
   --green: #57c07d;
   --red: #e06c75;
   --amber: #e2b93b;
@@ -367,6 +367,36 @@ code {
 .empty-hint.error,
 .error {
   color: var(--red);
+}
+
+/* ---- File tree (folders) --------------------------------------------- */
+
+.tree-folder {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  cursor: pointer;
+  color: var(--text-dim);
+  user-select: none;
+}
+.tree-folder:hover {
+  background: var(--bg-hover);
+}
+.chevron {
+  display: inline-block;
+  width: 12px;
+  font-size: 10px;
+  transition: transform 0.12s;
+  color: var(--text-faint);
+}
+.chevron.collapsed {
+  transform: rotate(-90deg);
+}
+.folder-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---- Commit box ------------------------------------------------------- */

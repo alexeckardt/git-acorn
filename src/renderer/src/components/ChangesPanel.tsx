@@ -1,6 +1,7 @@
 import type { ChangedFile, RepoStatus } from "../../../shared/types";
 import CommitBox from "./CommitBox";
 import FileRow from "./FileRow";
+import FileTree from "./FileTree";
 
 interface Props {
   status: RepoStatus;
@@ -46,22 +47,27 @@ export default function ChangesPanel({
           )}
         </header>
         <div className="file-list">
-          {status.staged.map((f) => (
-            <FileRow
-              key={`s-${f.path}`}
-              file={f}
-              selected={selected?.path === f.path && selected.staged === true}
-              onSelect={() => onSelectFile(f)}
-              actions={[
-                historyAction(f),
-                {
-                  label: "−",
-                  title: "Unstage file",
-                  onClick: () => run(window.gitApi.unstage([f.path])),
-                },
-              ]}
-            />
-          ))}
+          <FileTree
+            items={status.staged}
+            getPath={(f) => f.path}
+            renderFile={(f, indent) => (
+              <FileRow
+                file={f}
+                indent={indent}
+                nameOnly
+                selected={selected?.path === f.path && selected.staged === true}
+                onSelect={() => onSelectFile(f)}
+                actions={[
+                  historyAction(f),
+                  {
+                    label: "−",
+                    title: "Unstage file",
+                    onClick: () => run(window.gitApi.unstage([f.path])),
+                  },
+                ]}
+              />
+            )}
+          />
           {status.staged.length === 0 && (
             <div className="empty-hint">Nothing staged</div>
           )}
@@ -83,32 +89,37 @@ export default function ChangesPanel({
           )}
         </header>
         <div className="file-list">
-          {status.unstaged.map((f) => (
-            <FileRow
-              key={`u-${f.path}`}
-              file={f}
-              selected={selected?.path === f.path && selected.staged === false}
-              onSelect={() => onSelectFile(f)}
-              actions={[
-                historyAction(f),
-                {
-                  label: "↩",
-                  title: "Discard changes",
-                  danger: true,
-                  onClick: () => {
-                    if (confirm(`Discard changes to ${f.path}?`)) {
-                      run(window.gitApi.discard([f.path]));
-                    }
+          <FileTree
+            items={status.unstaged}
+            getPath={(f) => f.path}
+            renderFile={(f, indent) => (
+              <FileRow
+                file={f}
+                indent={indent}
+                nameOnly
+                selected={selected?.path === f.path && selected.staged === false}
+                onSelect={() => onSelectFile(f)}
+                actions={[
+                  historyAction(f),
+                  {
+                    label: "↩",
+                    title: "Discard changes",
+                    danger: true,
+                    onClick: () => {
+                      if (confirm(`Discard changes to ${f.path}?`)) {
+                        run(window.gitApi.discard([f.path]));
+                      }
+                    },
                   },
-                },
-                {
-                  label: "+",
-                  title: "Stage file",
-                  onClick: () => run(window.gitApi.stage([f.path])),
-                },
-              ]}
-            />
-          ))}
+                  {
+                    label: "+",
+                    title: "Stage file",
+                    onClick: () => run(window.gitApi.stage([f.path])),
+                  },
+                ]}
+              />
+            )}
+          />
           {status.unstaged.length === 0 && (
             <div className="empty-hint">No unstaged changes</div>
           )}

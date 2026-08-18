@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { RepoStatus } from '../../../shared/types'
 import DescriptionWriter, { DescEntry } from './DescriptionWriter'
+import { registerCommand } from '../lib/commands'
 
 interface Props {
   status: RepoStatus
@@ -40,18 +41,19 @@ export default function CommitBox({ status, onCommitted }: Props) {
     setShowWriter(true)
   }
 
-  // ⌘/Ctrl + .  opens the describer manually.
+  // Expose commit / describe as app commands (menu + ⌘. shortcut). Refs keep the
+  // handlers current without re-registering on every render.
+  const doCommitRef = useRef<() => void>(() => {})
+  const openWriterRef = useRef<() => void>(() => {})
+  doCommitRef.current = () => doCommit()
+  openWriterRef.current = () => openWriter('manual')
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === '.') {
-        e.preventDefault()
-        if (!showWriter) openWriter('manual')
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showWriter, describeFiles.length])
+    const unsubs = [
+      registerCommand('commit', () => doCommitRef.current()),
+      registerCommand('describe-changes', () => openWriterRef.current())
+    ]
+    return () => unsubs.forEach((u) => u())
+  }, [])
 
   async function performCommit(desc: string) {
     setBusy(true)

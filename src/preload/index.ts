@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { DiffSource, GitApi, TermApi } from '../shared/types'
+import type { DiffSource, GitApi, MenuApi, TermApi } from '../shared/types'
 
 const api: GitApi = {
   openRepoDialog: () => ipcRenderer.invoke('repo:open'),
@@ -16,7 +16,8 @@ const api: GitApi = {
   discard: (paths) => ipcRenderer.invoke('git:discard', paths),
   commit: (summary, description) => ipcRenderer.invoke('git:commit', summary, description),
   addToGitignore: (paths) => ipcRenderer.invoke('git:addToGitignore', paths),
-  hideLocally: (paths) => ipcRenderer.invoke('git:hideLocally', paths)
+  hideLocally: (paths) => ipcRenderer.invoke('git:hideLocally', paths),
+  createBranch: (name) => ipcRenderer.invoke('git:createBranch', name)
 }
 
 contextBridge.exposeInMainWorld('gitApi', api)
@@ -34,12 +35,17 @@ const termApi: TermApi = {
     const l = (_e: unknown, info: { code: number; cwd: string }) => cb(info)
     ipcRenderer.on('term:exit', l)
     return () => ipcRenderer.removeListener('term:exit', l)
-  },
-  onToggle: (cb) => {
-    const l = () => cb()
-    ipcRenderer.on('menu:toggleTerminal', l)
-    return () => ipcRenderer.removeListener('menu:toggleTerminal', l)
   }
 }
 
 contextBridge.exposeInMainWorld('termApi', termApi)
+
+const menuApi: MenuApi = {
+  onCommand: (cb) => {
+    const l = (_e: unknown, id: string) => cb(id)
+    ipcRenderer.on('command:invoke', l)
+    return () => ipcRenderer.removeListener('command:invoke', l)
+  }
+}
+
+contextBridge.exposeInMainWorld('menuApi', menuApi)

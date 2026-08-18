@@ -92,6 +92,8 @@ export interface GitApi {
   unstageAll: () => Promise<GitResult<void>>
   discard: (paths: string[]) => Promise<GitResult<void>>
   commit: (summary: string, description: string) => Promise<GitResult<void>>
+  /** Create a new branch and switch to it. */
+  createBranch: (name: string) => Promise<GitResult<void>>
   /** Append the paths to the repo's committed .gitignore. */
   addToGitignore: (paths: string[]) => Promise<GitResult<void>>
   /**
@@ -114,6 +116,10 @@ export interface TermApi {
   onData: (cb: (chunk: string) => void) => () => void
   /** Subscribe to command completion. Returns an unsubscribe function. */
   onExit: (cb: (info: { code: number; cwd: string }) => void) => () => void
-  /** Fired when the View menu / ⌘` requests toggling the terminal. */
-  onToggle: (cb: () => void) => () => void
+}
+
+/** Bridge for native-menu commands dispatched to the renderer. */
+export interface MenuApi {
+  /** Fired when a menu item / accelerator invokes a command by id. */
+  onCommand: (cb: (id: string) => void) => () => void
 }

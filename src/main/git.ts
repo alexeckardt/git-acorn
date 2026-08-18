@@ -435,6 +435,12 @@ export async function commit(summary: string, description: string): Promise<void
   await git(args)
 }
 
+export async function createBranch(name: string): Promise<void> {
+  const trimmed = name.trim()
+  if (!trimmed) throw new Error('Branch name is required')
+  await git(['checkout', '-b', trimmed])
+}
+
 /** Append a single anchored line to an ignore-style file, skipping duplicates. */
 async function appendUniqueLine(file: string, entry: string): Promise<void> {
   let existing = ''

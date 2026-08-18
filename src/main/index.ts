@@ -54,10 +54,41 @@ async function openPath(resolver: () => Promise<string>): Promise<void> {
   }
 }
 
+/** Dispatch a renderer command by id (the renderer owns key handling). */
+function sendCommand(id: string): void {
+  BrowserWindow.getFocusedWindow()?.webContents.send('command:invoke', id)
+}
+
+/**
+ * A menu item that invokes a renderer command. `registerAccelerator: false`
+ * shows the shortcut in the menu but leaves the key to the renderer, so it can
+ * be platform-aware and suppressed while a text field is focused. Accelerators
+ * here must stay in sync with src/renderer/src/lib/commands.ts.
+ */
+function commandItem(
+  label: string,
+  id: string,
+  accelerator?: string
+): MenuItemConstructorOptions {
+  return { label, accelerator, registerAccelerator: false, click: () => sendCommand(id) }
+}
+
 function buildMenu(): void {
   const isMac = process.platform === 'darwin'
   const template: MenuItemConstructorOptions[] = [
     ...(isMac ? [{ role: 'appMenu' as const }] : []),
+    {
+      label: 'Repository',
+      submenu: [
+        commandItem('Open Repository…', 'open-repo', 'CmdOrCtrl+O'),
+        commandItem('Refresh', 'refresh', 'CmdOrCtrl+R'),
+        { type: 'separator' },
+        commandItem('New Branch…', 'new-branch', 'CmdOrCtrl+B'),
+        { type: 'separator' },
+        commandItem('Commit', 'commit', 'CmdOrCtrl+Enter'),
+        commandItem('Describe Changes…', 'describe-changes', 'CmdOrCtrl+.')
+      ]
+    },
     {
       label: 'Edit',
       submenu: [
@@ -82,14 +113,9 @@ function buildMenu(): void {
     {
       label: 'View',
       submenu: [
-        {
-          label: 'Terminal',
-          accelerator: 'CmdOrCtrl+`',
-          click: () => BrowserWindow.getFocusedWindow()?.webContents.send('menu:toggleTerminal')
-        },
+        commandItem('Terminal', 'toggle-terminal', 'CmdOrCtrl+`'),
         { type: 'separator' },
-        { role: 'reload' },
-        { role: 'forceReload' },
+        { role: 'reload', accelerator: 'Shift+CmdOrCtrl+R' },
         { role: 'toggleDevTools' },
         { type: 'separator' },
         { role: 'resetZoom' },
@@ -151,6 +177,7 @@ function registerIpc(): void {
   ipcMain.handle('git:commit', (_e, summary: string, description: string) =>
     wrap(() => g.commit(summary, description))
   )
+  ipcMain.handle('git:createBranch', (_e, name: string) => wrap(() => g.createBranch(name)))
   ipcMain.handle('git:addToGitignore', (_e, paths: string[]) =>
     wrap(() => g.addToGitignore(paths))
   )

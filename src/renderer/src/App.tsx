@@ -13,6 +13,8 @@ import CommitInfoPanel from './components/CommitInfoPanel'
 import CommitGraph from './components/CommitGraph'
 import DiffView, { DiffMode } from './components/DiffView'
 import TerminalModal from './components/TerminalModal'
+import NewBranchModal from './components/NewBranchModal'
+import { installShortcuts, registerCommand, runCommand } from './lib/commands'
 
 export default function App() {
   const [repo, setRepo] = useState<RepoInfo | null>(null)
@@ -34,6 +36,7 @@ export default function App() {
 
   const [graphHeight, setGraphHeight] = useState(360)
   const [terminalVisible, setTerminalVisible] = useState(false)
+  const [newBranchOpen, setNewBranchOpen] = useState(false)
 
   // ---- data loading ------------------------------------------------------
 
@@ -71,10 +74,27 @@ export default function App() {
     })
   }, [])
 
-  // Toggle the terminal from the View menu / ⌘`.
+  // Install keyboard shortcuts and receive native-menu command dispatches.
   useEffect(() => {
-    return window.termApi.onToggle(() => setTerminalVisible((v) => !v))
+    const uninstall = installShortcuts()
+    const offMenu = window.menuApi.onCommand(runCommand)
+    return () => {
+      uninstall()
+      offMenu()
+    }
   }, [])
+
+  // Register the commands App owns (re-registered when `refresh` changes).
+  useEffect(() => {
+    const unsubs = [
+      registerCommand('open-repo', () => openRepo()),
+      registerCommand('refresh', () => refresh()),
+      registerCommand('new-branch', () => setNewBranchOpen(true)),
+      registerCommand('toggle-terminal', () => setTerminalVisible((v) => !v))
+    ]
+    return () => unsubs.forEach((u) => u())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refresh])
 
   // Reload everything when the repo or file filter changes.
   useEffect(() => {
@@ -283,6 +303,11 @@ export default function App() {
         visible={terminalVisible}
         onHide={() => setTerminalVisible(false)}
         repoName={repo.name}
+      />
+      <NewBranchModal
+        open={newBranchOpen}
+        onClose={() => setNewBranchOpen(false)}
+        onCreated={refresh}
       />
     </div>
   )

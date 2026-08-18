@@ -688,6 +688,47 @@ code {
   margin: 4px 6px;
 }
 
+/* ---- Small modal (new branch, etc.) ----------------------------------- */
+
+.small-modal {
+  width: min(420px, 90vw);
+  background: var(--bg-1);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.small-modal-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.small-modal-input {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 9px 12px;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.small-modal-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.small-modal-error {
+  color: var(--red);
+  font-size: 12px;
+}
+.small-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 /* ---- Description writer modal ----------------------------------------- */
 
 .modal-overlay {

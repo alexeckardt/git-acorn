@@ -174,14 +174,32 @@ export default function CommitBox({ status, onCommitted, onSync, syncing }: Prop
       </div>
 
       {error && <div className="commit-error">{error}</div>}
-      <button
-        className="commit-btn"
-        disabled={commitDisabled}
-        onClick={commitWorkflow === "wizard" ? openWizard : doCommit}
-      >
-        {commitLabel}
-        <span className="commit-branch">{status.branch}</span>
-      </button>
+      {showSync ? (
+        <button
+          className="sync-btn commit-sync-btn"
+          disabled={syncing}
+          onClick={onSync}
+          title="Pull then push to origin"
+        >
+          {syncing ? (
+            <span className="ring-spinner light" aria-hidden="true" />
+          ) : (
+            <Icon name="sync" size={15} />
+          )}
+          <span>Sync</span>
+          {status.ahead > 0 && <span className="sync-count">↑{status.ahead}</span>}
+          {status.behind > 0 && <span className="sync-count">↓{status.behind}</span>}
+        </button>
+      ) : (
+        <button
+          className="commit-btn"
+          disabled={commitDisabled}
+          onClick={commitWorkflow === "wizard" ? openWizard : doCommit}
+        >
+          {commitLabel}
+          <span className="commit-branch">{status.branch}</span>
+        </button>
+      )}
 
       {showWriter && describeFiles.length > 0 && (
         <DescriptionWriter

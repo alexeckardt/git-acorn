@@ -24,6 +24,7 @@ interface Props {
   onRenameBranch: (name: string) => void
   onDeleteBranch: (name: string) => void
   onMergeBranch: (name: string) => void
+  onCreatePR: (name: string) => void
   onOpenPR: (url: string) => void
 }
 
@@ -40,6 +41,7 @@ export default function CommitGraph({
   onRenameBranch,
   onDeleteBranch,
   onMergeBranch,
+  onCreatePR,
   onOpenPR
 }: Props) {
   const [search, setSearch] = useState('')
@@ -151,6 +153,7 @@ export default function CommitGraph({
           onClick: () => onMergeBranch(name)
         })
       }
+      items.push({ label: 'Create pull request…', onClick: () => onCreatePR(name) })
     }
     items.push({
       label: 'Copy branch name',

@@ -98,7 +98,9 @@ export default function DescriptionWriter({ files, onFinish, embedded }: Props) 
   const body = (
     <div className="desc-body">
       <div className="desc-main">
+        
         <DiffView source={diffSource} mode={mode} onModeChange={setMode} title={current.path} />
+        
         <div className="desc-input-row">
           <input
             ref={inputRef}

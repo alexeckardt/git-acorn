@@ -1,24 +1,33 @@
 import type { RepoInfo, RepoStatus } from '../../../shared/types'
 import { isMac } from '../lib/commands'
+import Icon from './Icon'
 
 interface Props {
   repo: RepoInfo | null
   status: RepoStatus | null
   refreshing: boolean
+  syncing: boolean
   onSwitchRepo: () => void
   onSwitchBranch: () => void
   onRefresh: () => void
+  onSync: () => void
 }
 
 export default function TitleBar({
   repo,
   status,
   refreshing,
+  syncing,
   onSwitchRepo,
   onSwitchBranch,
-  onRefresh
+  onRefresh,
+  onSync
 }: Props) {
   const branchShortcut = `${isMac ? '⌘' : 'Ctrl+'}B`
+  const ahead = status?.ahead ?? 0
+  const behind = status?.behind ?? 0
+  const canSync = !!status && (ahead > 0 || behind > 0)
+
   return (
     <div className="titlebar">
       <div className="titlebar-left">
@@ -32,18 +41,35 @@ export default function TitleBar({
             onClick={onSwitchBranch}
             title={`Switch branch (${branchShortcut})`}
           >
-            <span className="branch-icon">⑂</span>
+            <Icon name="git-branch" size={13} className="branch-icon" />
             {status.branch}
-            {status.ahead > 0 && <span className="ab">↑{status.ahead}</span>}
-            {status.behind > 0 && <span className="ab">↓{status.behind}</span>}
           </button>
         )}
+
+        {canSync && (
+          <button
+            className="sync-btn"
+            onClick={onSync}
+            disabled={syncing}
+            title="Pull then push to origin"
+          >
+            {syncing ? (
+              <span className="ring-spinner light" aria-hidden="true" />
+            ) : (
+              <Icon name="sync" size={15} />
+            )}
+            <span>Sync</span>
+            {ahead > 0 && <span className="sync-count">↑{ahead}</span>}
+            {behind > 0 && <span className="sync-count">↓{behind}</span>}
+          </button>
+        )}
+
         {repo && (
           <button
             className="refresh-icon"
             onClick={onRefresh}
-            title="Refresh (auto-refreshes when you return to the app)"
-            aria-label="Refresh"
+            title="Fetch from origin & refresh"
+            aria-label="Fetch & refresh"
             disabled={refreshing}
           >
             {refreshing ? (

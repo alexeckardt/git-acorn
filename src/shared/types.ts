@@ -118,8 +118,12 @@ export interface GitApi {
   ghAvailable: () => Promise<GitResult<boolean>>
   /** Whether a branch already has an open PR (best-effort). */
   branchHasPR: (branch: string) => Promise<GitResult<boolean>>
-  /** Create a PR for the current branch (`gh pr create --fill`); returns its URL. */
-  createPR: () => Promise<GitResult<string>>
+  /** Create a PR for a branch (defaults to current); pushes it first. Returns URL. */
+  createPR: (branch?: string) => Promise<GitResult<string>>
+  /** Fetch from the remote (updates ahead/behind). */
+  fetch: () => Promise<GitResult<void>>
+  /** Pull (fetch + merge) then push; reports whether the merge conflicted. */
+  sync: () => Promise<GitResult<MergeResult>>
   /** Append the paths to the repo's committed .gitignore. */
   addToGitignore: (paths: string[]) => Promise<GitResult<void>>
   /**

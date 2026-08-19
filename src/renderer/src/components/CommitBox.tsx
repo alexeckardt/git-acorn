@@ -2,15 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import type { RepoStatus } from "../../../shared/types";
 import DescriptionWriter, { DescEntry } from "./DescriptionWriter";
 import CommitWizard from "./CommitWizard";
+import Icon from "./Icon";
 import { registerCommand } from "../lib/commands";
 import { usePrefs } from "../lib/prefs";
 
 interface Props {
   status: RepoStatus;
   onCommitted: () => void;
+  onSync: () => void;
+  syncing: boolean;
 }
 
-export default function CommitBox({ status, onCommitted }: Props) {
+export default function CommitBox({ status, onCommitted, onSync, syncing }: Props) {
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
@@ -125,6 +128,9 @@ export default function CommitBox({ status, onCommitted }: Props) {
   const commitDisabled = commitWorkflow === "wizard"
     ? !hasChanges || busy
     : !canCommitDesktop;
+
+  // With nothing to commit but commits to push/pull, the commit button becomes Sync.
+  const showSync = !hasChanges && (status.ahead > 0 || status.behind > 0);
 
   return (
     <div className="commit-box" onKeyDown={onKeyDown}>

@@ -71,3 +71,20 @@ export const LANE_COLORS = [
 export function laneColor(col: number): string {
   return LANE_COLORS[col % LANE_COLORS.length]
 }
+
+/**
+ * Swatches a user can tag a commit row with (right-click → Set colour). Each
+ * entry is a solid accent used for the swatch dot; the row background is a
+ * translucent tint of it, defined by the matching `.tint-N` CSS class. Index
+ * into this array is what gets persisted in the per-repo lookup table.
+ */
+export const COMMIT_TINTS = [
+  '#eb5e7c', // rose
+  '#f78c6c', // orange
+  '#f2c94c', // amber
+  '#7fd1b9', // green
+  '#56c8d8', // teal
+  '#4c9aff', // blue
+  '#c792ea', // purple
+  '#b0bec5' // slate
+]

@@ -8,14 +8,25 @@ export interface MenuItem {
   divider?: boolean
 }
 
+export interface SwatchRow {
+  /** Solid colours to show as pickable dots. */
+  colors: string[]
+  /** Currently applied index, or null when none is set. */
+  active: number | null
+  /** Pick an index, or null to clear. */
+  onPick: (index: number | null) => void
+}
+
 interface Props {
   x: number
   y: number
   items: MenuItem[]
   onClose: () => void
+  /** Optional colour picker rendered above the items. */
+  swatches?: SwatchRow
 }
 
-export default function ContextMenu({ x, y, items, onClose }: Props) {
+export default function ContextMenu({ x, y, items, onClose, swatches }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState({ x, y })
 
@@ -54,6 +65,31 @@ export default function ContextMenu({ x, y, items, onClose }: Props) {
       style={{ top: pos.y, left: pos.x }}
       onContextMenu={(e) => e.preventDefault()}
     >
+      {swatches && (
+        <div className="menu-swatches">
+          <button
+            className={`swatch swatch-none${swatches.active === null ? ' active' : ''}`}
+            title="No colour"
+            onClick={() => {
+              swatches.onPick(null)
+              onClose()
+            }}
+          />
+          {swatches.colors.map((c, i) => (
+            <button
+              key={c}
+              className={`swatch${swatches.active === i ? ' active' : ''}`}
+              style={{ background: c }}
+              title={`Colour ${i + 1}`}
+              onClick={() => {
+                swatches.onPick(i)
+                onClose()
+              }}
+            />
+          ))}
+        </div>
+      )}
+      {swatches && items.length > 0 && <div className="menu-divider" />}
       {items.map((it, i) => (
         <div key={i}>
           {it.divider && <div className="menu-divider" />}

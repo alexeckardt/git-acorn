@@ -243,6 +243,10 @@ function registerIpc(): void {
     wrap(() => g.addToGitignore(paths))
   )
   ipcMain.handle('git:hideLocally', (_e, paths: string[]) => wrap(() => g.hideLocally(paths)))
+  ipcMain.handle('git:getCommitColors', () => wrap(() => g.getCommitColors()))
+  ipcMain.handle('git:setCommitColor', (_e, hash: string, color: number | null) =>
+    wrap(() => g.setCommitColor(hash, color))
+  )
 
   // Terminal
   ipcMain.on('term:run', (e, command: string) => {

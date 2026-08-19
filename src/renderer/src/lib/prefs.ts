@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { LANE_COLORS } from './graph'
 
 // A tiny reactive preferences store backed by localStorage. Components read it
 // with usePrefs() and re-render when any preference changes.
@@ -14,13 +15,16 @@ export interface Preferences {
   defaultBranchPrefix: string
   /** When the current branch's PR closes, switch to its base and pull. */
   autoSwitchOnPRClose: boolean
+  /** Palette used to colour graph lanes and branch pills (repeats past its length). */
+  laneColors: string[]
 }
 
 const DEFAULTS: Preferences = {
   autoDescribe: true,
   commitWorkflow: 'desktop',
   defaultBranchPrefix: '',
-  autoSwitchOnPRClose: true
+  autoSwitchOnPRClose: true,
+  laneColors: [...LANE_COLORS]
 }
 
 const KEY = 'git-acorn.prefs'

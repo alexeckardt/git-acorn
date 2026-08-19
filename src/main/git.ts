@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { appendFile, readFile, unlink, writeFile } from 'node:fs/promises'
+import { appendFile, mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import type {
@@ -694,4 +694,40 @@ export async function excludeFilePath(): Promise<string> {
   if (!repoPath) throw new Error('No repository is open')
   const rel = (await git(['rev-parse', '--git-path', 'info/exclude'])).trim()
   return resolve(repoPath, rel)
+}
+
+// ---- Local per-repo app data -------------------------------------------
+// git-acorn keeps its own metadata (e.g. per-commit colours) inside the git
+// directory (`<gitdir>/git-acorn/`). Git never tracks anything under the git
+// directory, so this is purely local to the machine and needs no .gitignore.
+
+/** Absolute path to git-acorn's private data dir inside the git directory. */
+async function acornDataDir(): Promise<string> {
+  if (!repoPath) throw new Error('No repository is open')
+  const rel = (await git(['rev-parse', '--git-path', 'git-acorn'])).trim()
+  return resolve(repoPath, rel)
+}
+
+/** Read the commit → colour-index lookup table (empty if none saved yet). */
+export async function getCommitColors(): Promise<Record<string, number>> {
+  const file = join(await acornDataDir(), 'commit-colors.json')
+  try {
+    const raw = await readFile(file, 'utf8')
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object') return parsed as Record<string, number>
+  } catch {
+    /* missing or malformed — start fresh */
+  }
+  return {}
+}
+
+/** Set (or clear, when color is null) the colour index for a commit hash. */
+export async function setCommitColor(hash: string, color: number | null): Promise<void> {
+  const dir = await acornDataDir()
+  const file = join(dir, 'commit-colors.json')
+  const table = await getCommitColors()
+  if (color === null) delete table[hash]
+  else table[hash] = color
+  await mkdir(dir, { recursive: true })
+  await writeFile(file, JSON.stringify(table, null, 2))
 }

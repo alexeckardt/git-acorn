@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Commit, PullRequest, RepoStatus } from '../../../shared/types'
-import { computeGraph, laneColor } from '../lib/graph'
+import { COMMIT_TINTS, computeGraph, LANE_COLORS } from '../lib/graph'
+import { usePrefs } from '../lib/prefs'
 import { colorFromString, initials, relativeTime } from '../lib/util'
 import ContextMenu, { MenuItem } from './ContextMenu'
 import BranchLabel from './BranchLabel'
@@ -49,7 +50,13 @@ export default function CommitGraph({
   const [branchMenu, setBranchMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(
     null
   )
+  const [commitMenu, setCommitMenu] = useState<{ x: number; y: number; hash: string } | null>(null)
+  const [commitColors, setCommitColors] = useState<Record<string, number>>({})
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  const prefs = usePrefs()
+  const palette = prefs.laneColors && prefs.laneColors.length ? prefs.laneColors : LANE_COLORS
+  const laneColorOf = (col: number): string => palette[col % palette.length]
 
   const currentBranch = status?.branch ?? ''
   const prByBranch = useMemo(() => {
@@ -92,6 +99,35 @@ export default function CommitGraph({
   }, [commits])
   const isDim = (hash: string) => hasHead && !reachable.has(hash)
 
+  // Per-commit colour tags, stored locally in the repo's git dir. Reload when
+  // the commit set changes (a refresh or a repo switch).
+  useEffect(() => {
+    let live = true
+    window.gitApi.getCommitColors().then((res) => {
+      if (live && res.ok && res.data) setCommitColors(res.data)
+    })
+    return () => {
+      live = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commits])
+
+  async function setCommitColor(hash: string, idx: number | null) {
+    setCommitColors((m) => {
+      const next = { ...m }
+      if (idx === null) delete next[hash]
+      else next[hash] = idx
+      return next
+    })
+    await window.gitApi.setCommitColor(hash, idx)
+  }
+
+  function openCommitMenu(e: React.MouseEvent, hash: string) {
+    e.preventDefault()
+    e.stopPropagation()
+    setCommitMenu({ x: e.clientX, y: e.clientY, hash })
+  }
+
   const layout = useMemo(() => computeGraph(displayCommits), [displayCommits])
   const graphWidth = LEFT_PAD * 2 + (layout.maxCol + 1) * COL_W
   const cx = (col: number) => LEFT_PAD + col * COL_W
@@ -122,14 +158,14 @@ export default function CommitGraph({
               } L${x2},${y2}`
         out.push({
           d,
-          color: isDim(c.hash) ? 'var(--border-strong)' : laneColor(Math.max(cc, pc)),
+          color: isDim(c.hash) ? 'var(--border-strong)' : laneColorOf(Math.max(cc, pc)),
           key: `${c.hash}-${p}`
         })
       })
     })
     return out
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayCommits, layout, reachable, hasHead])
+  }, [displayCommits, layout, reachable, hasHead, palette])
 
   // Scroll to the first branch matching the search.
   useEffect(() => {
@@ -244,7 +280,7 @@ export default function CommitGraph({
                   cx={cx(col)}
                   cy={cy(row)}
                   r={NODE_R}
-                  fill={isDim(c.hash) ? 'var(--text-faint)' : laneColor(col)}
+                  fill={isDim(c.hash) ? 'var(--text-faint)' : laneColorOf(col)}
                   stroke="var(--bg-2)"
                   strokeWidth={2}
                 />
@@ -254,14 +290,18 @@ export default function CommitGraph({
 
           {displayCommits.map((c) => {
             const row = layout.rowByHash.get(c.hash)!
+            const col = layout.colByHash.get(c.hash)!
+            const chipColor = laneColorOf(col)
+            const tint = commitColors[c.hash]
             return (
               <div
                 key={c.hash}
                 className={`commit-row${selected === c.hash ? ' selected' : ''}${
                   isDim(c.hash) ? ' dim' : ''
-                }`}
+                }${tint !== undefined ? ` tint-${tint}` : ''}`}
                 style={{ top: row * ROW_H, height: ROW_H, paddingLeft: graphWidth }}
                 onClick={() => onSelectCommit(c.hash)}
+                onContextMenu={(e) => openCommitMenu(e, c.hash)}
               >
                 <div className="commit-line">
                   {(() => {
@@ -314,8 +354,15 @@ export default function CommitGraph({
                             <span
                               key={`${r.type}-${r.name}`}
                               className={`ref-chip ref-${r.type}${
-                                searchHit(r.name) ? ' search-hit' : ''
-                              }${isCurrent ? ' current' : ''}`}
+                                isBranch ? ' ref-colored' : ''
+                              }${searchHit(r.name) ? ' search-hit' : ''}${
+                                isCurrent ? ' current' : ''
+                              }`}
+                              style={
+                                isBranch
+                                  ? ({ ['--chip']: chipColor } as React.CSSProperties)
+                                  : undefined
+                              }
                               onContextMenu={
                                 isBranch
                                   ? (e) => openBranchMenu(e, r.name, r.type === 'branch')
@@ -355,6 +402,25 @@ export default function CommitGraph({
           y={branchMenu.y}
           items={branchMenu.items}
           onClose={() => setBranchMenu(null)}
+        />
+      )}
+
+      {commitMenu && (
+        <ContextMenu
+          x={commitMenu.x}
+          y={commitMenu.y}
+          swatches={{
+            colors: COMMIT_TINTS,
+            active: commitColors[commitMenu.hash] ?? null,
+            onPick: (idx) => setCommitColor(commitMenu.hash, idx)
+          }}
+          items={[
+            {
+              label: 'Copy commit hash',
+              onClick: () => navigator.clipboard.writeText(commitMenu.hash)
+            }
+          ]}
+          onClose={() => setCommitMenu(null)}
         />
       )}
     </div>

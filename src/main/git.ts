@@ -554,32 +554,34 @@ export async function mergeBranch(name: string): Promise<MergeResult> {
 }
 
 export async function listPRs(): Promise<PullRequest[]> {
-  try {
-    const out = await runCmd('gh', [
-      'pr',
-      'list',
-      '--state',
-      'open',
-      '--json',
-      'number,url,headRefName,title,state'
-    ])
-    const arr = JSON.parse(out) as {
-      number: number
-      url: string
-      headRefName: string
-      title: string
-      state: string
-    }[]
-    return arr.map((p) => ({
-      number: p.number,
-      url: p.url,
-      branch: p.headRefName,
-      title: p.title,
-      state: p.state
-    }))
-  } catch {
-    return []
-  }
+  // Throws if gh is unavailable so the renderer can tell "no PRs" from "failed"
+  // (a failed listing must not look like every PR just closed).
+  const out = await runCmd('gh', [
+    'pr',
+    'list',
+    '--state',
+    'all',
+    '--limit',
+    '100',
+    '--json',
+    'number,url,headRefName,baseRefName,title,state'
+  ])
+  const arr = JSON.parse(out) as {
+    number: number
+    url: string
+    headRefName: string
+    baseRefName: string
+    title: string
+    state: string
+  }[]
+  return arr.map((p) => ({
+    number: p.number,
+    url: p.url,
+    branch: p.headRefName,
+    base: p.baseRefName,
+    title: p.title,
+    state: p.state
+  }))
 }
 
 /** Push the current branch to origin, then open a PR. Returns the PR URL. */
@@ -596,6 +598,18 @@ export async function createPR(branch?: string): Promise<string> {
 /** Fetch from the remote so ahead/behind counts are current. */
 export async function fetchRemote(): Promise<void> {
   await git(['fetch', '--prune'])
+}
+
+/** Pull (fetch + merge) the current branch. */
+export async function pull(): Promise<MergeResult> {
+  try {
+    await git(['pull', '--no-rebase', '--no-edit'])
+  } catch (e) {
+    const unmerged = (await git(['diff', '--name-only', '--diff-filter=U'])).trim()
+    if (unmerged) return { conflict: true, message: (e as Error).message }
+    throw e
+  }
+  return { conflict: false, message: '' }
 }
 
 /** Pull (fetch + merge) then push, so the merge pipeline runs before pushing. */

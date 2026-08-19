@@ -76,6 +76,8 @@ export interface PullRequest {
   url: string
   /** The PR's head branch (headRefName). */
   branch: string
+  /** The PR's base branch (baseRefName). */
+  base: string
   title: string
   state: string
 }
@@ -122,6 +124,8 @@ export interface GitApi {
   createPR: (branch?: string) => Promise<GitResult<string>>
   /** Fetch from the remote (updates ahead/behind). */
   fetch: () => Promise<GitResult<void>>
+  /** Pull (fetch + merge) the current branch. */
+  pull: () => Promise<GitResult<MergeResult>>
   /** Pull (fetch + merge) then push; reports whether the merge conflicted. */
   sync: () => Promise<GitResult<MergeResult>>
   /** Append the paths to the repo's committed .gitignore. */

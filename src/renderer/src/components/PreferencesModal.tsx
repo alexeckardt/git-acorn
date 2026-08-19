@@ -79,6 +79,24 @@ export default function PreferencesModal({ open, onClose }: Props) {
 
           <div className="prefs-row">
             <div className="prefs-row-text">
+              <div className="prefs-row-label">Switch to base branch when a PR closes</div>
+              <div className="prefs-row-desc">
+                When the PR for your current branch is merged or closed, automatically check out
+                its base branch and pull — ready for the next thing.
+              </div>
+            </div>
+            <label className="switch" title="Toggle auto-switch on PR close">
+              <input
+                type="checkbox"
+                checked={prefs.autoSwitchOnPRClose}
+                onChange={(e) => setPref('autoSwitchOnPRClose', e.target.checked)}
+              />
+              <span className="switch-slider" />
+            </label>
+          </div>
+
+          <div className="prefs-row">
+            <div className="prefs-row-text">
               <div className="prefs-row-label">Default branch prefix</div>
               <div className="prefs-row-desc">
                 Pre-selected in the branch creator (⌘/Ctrl+B). You can still change it there.

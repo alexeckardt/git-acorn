@@ -54,7 +54,11 @@ export default function CommitGraph({
   const currentBranch = status?.branch ?? ''
   const prByBranch = useMemo(() => {
     const m = new Map<string, PullRequest>()
-    for (const p of prs) m.set(p.branch, p)
+    for (const p of prs) {
+      const existing = m.get(p.branch)
+      // Prefer an open PR over a closed/merged one for the same branch.
+      if (!existing || (p.state === 'OPEN' && existing.state !== 'OPEN')) m.set(p.branch, p)
+    }
     return m
   }, [prs])
 
@@ -260,40 +264,72 @@ export default function CommitGraph({
                 onClick={() => onSelectCommit(c.hash)}
               >
                 <div className="commit-line">
-                  {c.refs.map((r) => {
-                    const isBranch = r.type === 'branch' || r.type === 'remote'
-                    const isCurrent = r.type === 'branch' && r.name === currentBranch
-                    const pr = isBranch ? prByBranch.get(r.name) : undefined
-                    return (
-                      <span key={`${r.type}-${r.name}`} className="ref-group">
-                        <span
-                          className={`ref-chip ref-${r.type}${
-                            searchHit(r.name) ? ' search-hit' : ''
-                          }${isCurrent ? ' current' : ''}`}
-                          onContextMenu={
-                            isBranch
-                              ? (e) => openBranchMenu(e, r.name, r.type === 'branch')
-                              : undefined
-                          }
-                        >
-                          {isBranch ? <BranchLabel name={r.name} /> : r.name}
-                        </span>
-                        {pr && (
-                          <span
-                            className="pr-chip"
-                            title={`PR #${pr.number}: ${pr.title} — double-click to open`}
-                            onDoubleClick={(e) => {
-                              e.stopPropagation()
-                              onOpenPR(pr.url)
-                            }}
-                          >
-                            <Icon name="git-pull-request" size={13} className="pr-icon" />#
-                            {pr.number}
-                          </span>
-                        )}
+                  {(() => {
+                    // Order the pills: HEAD → open PR → branch names → closed PR.
+                    const heads = c.refs.filter((r) => r.type === 'head')
+                    const named = c.refs.filter(
+                      (r) => r.type === 'branch' || r.type === 'remote' || r.type === 'tag'
+                    )
+                    const commitPRs: PullRequest[] = []
+                    const seen = new Set<number>()
+                    for (const r of c.refs) {
+                      if (r.type !== 'branch' && r.type !== 'remote') continue
+                      const pr = prByBranch.get(r.name)
+                      if (pr && !seen.has(pr.number)) {
+                        seen.add(pr.number)
+                        commitPRs.push(pr)
+                      }
+                    }
+                    const openPRs = commitPRs.filter((p) => p.state === 'OPEN')
+                    const closedPRs = commitPRs.filter((p) => p.state !== 'OPEN')
+
+                    const prChip = (pr: PullRequest, closed: boolean) => (
+                      <span
+                        key={`pr-${pr.number}`}
+                        className={`pr-chip${closed ? ' closed' : ''}`}
+                        title={`PR #${pr.number}: ${pr.title}${
+                          closed ? ` (${pr.state.toLowerCase()})` : ''
+                        } — double-click to open`}
+                        onDoubleClick={(e) => {
+                          e.stopPropagation()
+                          onOpenPR(pr.url)
+                        }}
+                      >
+                        <Icon name="git-pull-request" size={13} className="pr-icon" />#{pr.number}
                       </span>
                     )
-                  })}
+
+                    return (
+                      <>
+                        {heads.map((r) => (
+                          <span key={`head-${r.name}`} className="ref-chip ref-head">
+                            {r.name}
+                          </span>
+                        ))}
+                        {openPRs.map((pr) => prChip(pr, false))}
+                        {named.map((r) => {
+                          const isBranch = r.type === 'branch' || r.type === 'remote'
+                          const isCurrent = r.type === 'branch' && r.name === currentBranch
+                          return (
+                            <span
+                              key={`${r.type}-${r.name}`}
+                              className={`ref-chip ref-${r.type}${
+                                searchHit(r.name) ? ' search-hit' : ''
+                              }${isCurrent ? ' current' : ''}`}
+                              onContextMenu={
+                                isBranch
+                                  ? (e) => openBranchMenu(e, r.name, r.type === 'branch')
+                                  : undefined
+                              }
+                            >
+                              {isBranch ? <BranchLabel name={r.name} /> : r.name}
+                            </span>
+                          )
+                        })}
+                        {closedPRs.map((pr) => prChip(pr, true))}
+                      </>
+                    )
+                  })()}
                   <span className="commit-subject-row">{c.subject}</span>
                 </div>
                 <div className="commit-side">

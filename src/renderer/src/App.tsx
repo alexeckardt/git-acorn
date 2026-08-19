@@ -49,6 +49,7 @@ export default function App() {
   const [renameTarget, setRenameTarget] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [mergeConflictBranch, setMergeConflictBranch] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
 
   // ---- data loading ------------------------------------------------------
 
@@ -73,16 +74,21 @@ export default function App() {
     setPrs(res.ok && res.data ? res.data : [])
   }, [])
 
-  const refresh = useCallback(async () => {
-    setRefreshing(true)
-    // Floor the spinner at ~450ms so the animation reads as a deliberate action.
-    const minSpin = new Promise((r) => setTimeout(r, 450))
-    try {
-      await Promise.all([loadStatus(), loadLog(fileFilter), loadPRs(), minSpin])
-    } finally {
-      setRefreshing(false)
-    }
-  }, [loadStatus, loadLog, loadPRs, fileFilter])
+  const refresh = useCallback(
+    async (fetchFirst = false) => {
+      setRefreshing(true)
+      // Floor the spinner at ~450ms so the animation reads as a deliberate action.
+      const minSpin = new Promise((r) => setTimeout(r, 450))
+      try {
+        // Fetch first so ahead/behind (and the Sync button) are current.
+        if (fetchFirst) await window.gitApi.fetch().catch(() => {})
+        await Promise.all([loadStatus(), loadLog(fileFilter), loadPRs(), minSpin])
+      } finally {
+        setRefreshing(false)
+      }
+    },
+    [loadStatus, loadLog, loadPRs, fileFilter]
+  )
 
   // On startup, restore the current repo, or the most recent that still opens.
   useEffect(() => {
@@ -119,7 +125,7 @@ export default function App() {
   useEffect(() => {
     const unsubs = [
       registerCommand('open-repo', () => openSwitchRepo()),
-      registerCommand('refresh', () => refresh()),
+      registerCommand('refresh', () => refresh(true)),
       registerCommand('new-branch', () => setNewBranchOpen(true)),
       registerCommand('toggle-terminal', () => setTerminalVisible((v) => !v)),
       registerCommand('preferences', () => setPreferencesOpen(true))
@@ -128,9 +134,10 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refresh])
 
-  // Reload everything when the repo or file filter changes.
+  // Reload everything when the repo or file filter changes (fetch so the Sync
+  // button reflects the remote right away).
   useEffect(() => {
-    if (repo) refresh()
+    if (repo) refresh(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo, fileFilter])
 
@@ -242,6 +249,29 @@ export default function App() {
     window.gitApi.openExternal(url)
   }
 
+  async function doSync() {
+    if (syncing) return
+    setSyncing(true)
+    const res = await window.gitApi.sync()
+    setSyncing(false)
+    await refresh(true)
+    if (res.ok && res.data?.conflict) {
+      setMergeConflictBranch(`origin/${status?.branch ?? ''}`)
+    } else if (!res.ok) {
+      alert(res.error)
+    }
+  }
+
+  async function createPRForBranch(name: string) {
+    const res = await window.gitApi.createPR(name)
+    if (res.ok && res.data) {
+      window.gitApi.openExternal(res.data)
+      refresh()
+    } else {
+      alert(res.error ?? 'Could not create the pull request')
+    }
+  }
+
   function selectWorkingFile(file: ChangedFile) {
     setSelectedCommit(null)
     setDiffSource({
@@ -315,9 +345,11 @@ export default function App() {
           repo={null}
           status={null}
           refreshing={false}
+          syncing={false}
           onSwitchRepo={openSwitchRepo}
           onSwitchBranch={() => setNewBranchOpen(true)}
           onRefresh={() => {}}
+          onSync={() => {}}
         />
         <div className="welcome">
           <div className="welcome-card">
@@ -358,9 +390,11 @@ export default function App() {
         repo={repo}
         status={status}
         refreshing={refreshing}
+        syncing={syncing}
         onSwitchRepo={openSwitchRepo}
         onSwitchBranch={() => setNewBranchOpen(true)}
-        onRefresh={refresh}
+        onRefresh={() => refresh(true)}
+        onSync={doSync}
       />
       <div className="body">
         <aside className="sidebar">
@@ -372,6 +406,8 @@ export default function App() {
                 onSelectFile={selectWorkingFile}
                 onRefresh={refresh}
                 onFileHistory={openFileHistory}
+                onSync={doSync}
+                syncing={syncing}
               />
             ) : (
               <div className="empty-hint">Loading…</div>
@@ -406,6 +442,7 @@ export default function App() {
                 onRenameBranch={startRenameBranch}
                 onDeleteBranch={deleteBranch}
                 onMergeBranch={mergeBranch}
+                onCreatePR={createPRForBranch}
                 onOpenPR={openPR}
               />
             )}

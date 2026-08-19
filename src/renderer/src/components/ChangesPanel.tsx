@@ -11,6 +11,8 @@ interface Props {
   onSelectFile: (file: ChangedFile) => void;
   onRefresh: () => void;
   onFileHistory: (path: string) => void;
+  onSync: () => void;
+  syncing: boolean;
 }
 
 export default function ChangesPanel({
@@ -19,6 +21,8 @@ export default function ChangesPanel({
   onSelectFile,
   onRefresh,
   onFileHistory,
+  onSync,
+  syncing,
 }: Props) {
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(
     null,
@@ -170,7 +174,7 @@ export default function ChangesPanel({
         </div>
       </section>
 
-      <CommitBox status={status} onCommitted={onRefresh} />
+      <CommitBox status={status} onCommitted={onRefresh} onSync={onSync} syncing={syncing} />
 
       {menu && (
         <ContextMenu

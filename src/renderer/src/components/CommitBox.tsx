@@ -2,15 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import type { RepoStatus } from "../../../shared/types";
 import DescriptionWriter, { DescEntry } from "./DescriptionWriter";
 import CommitWizard from "./CommitWizard";
+import Icon from "./Icon";
 import { registerCommand } from "../lib/commands";
 import { usePrefs } from "../lib/prefs";
 
 interface Props {
   status: RepoStatus;
   onCommitted: () => void;
+  onSync: () => void;
+  syncing: boolean;
 }
 
-export default function CommitBox({ status, onCommitted }: Props) {
+export default function CommitBox({ status, onCommitted, onSync, syncing }: Props) {
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
@@ -43,10 +46,16 @@ export default function CommitBox({ status, onCommitted }: Props) {
     if (hasChanges) setShowWizard(true);
   }
 
-  // Ctrl/Cmd+Enter runs whichever workflow is configured.
+  // Ctrl/Cmd+Enter runs whatever the bottom-left button does (Sync if the
+  // button is currently a Sync button, otherwise commit / wizard).
   function handleCommitShortcut() {
-    if (commitWorkflow === "wizard") openWizard();
-    else doCommit();
+    if (showSync) {
+      onSync();
+    } else if (commitWorkflow === "wizard") {
+      openWizard();
+    } else {
+      doCommit();
+    }
   }
 
   // Expose commit / describe as app commands (menu + shortcuts). Refs keep the
@@ -126,6 +135,9 @@ export default function CommitBox({ status, onCommitted }: Props) {
     ? !hasChanges || busy
     : !canCommitDesktop;
 
+  // With nothing to commit but commits to push/pull, the commit button becomes Sync.
+  const showSync = !hasChanges && (status.ahead > 0 || status.behind > 0);
+
   return (
     <div className="commit-box" onKeyDown={onKeyDown}>
       {commitWorkflow !== "wizard" &&
@@ -168,14 +180,32 @@ export default function CommitBox({ status, onCommitted }: Props) {
       </div>
 
       {error && <div className="commit-error">{error}</div>}
-      <button
-        className="commit-btn"
-        disabled={commitDisabled}
-        onClick={commitWorkflow === "wizard" ? openWizard : doCommit}
-      >
-        {commitLabel}
-        <span className="commit-branch">{status.branch}</span>
-      </button>
+      {showSync ? (
+        <button
+          className="sync-btn commit-sync-btn"
+          disabled={syncing}
+          onClick={onSync}
+          title="Pull then push to origin"
+        >
+          {syncing ? (
+            <span className="ring-spinner light" aria-hidden="true" />
+          ) : (
+            <Icon name="sync" size={15} />
+          )}
+          <span>Sync</span>
+          {status.ahead > 0 && <span className="sync-count">↑{status.ahead}</span>}
+          {status.behind > 0 && <span className="sync-count">↓{status.behind}</span>}
+        </button>
+      ) : (
+        <button
+          className="commit-btn"
+          disabled={commitDisabled}
+          onClick={commitWorkflow === "wizard" ? openWizard : doCommit}
+        >
+          {commitLabel}
+          <span className="commit-branch">{status.branch}</span>
+        </button>
+      )}
 
       {showWriter && describeFiles.length > 0 && (
         <DescriptionWriter

@@ -583,12 +583,34 @@ export async function listPRs(): Promise<PullRequest[]> {
 }
 
 /** Push the current branch to origin, then open a PR. Returns the PR URL. */
-export async function createPR(): Promise<string> {
-  const branch = (await git(['branch', '--show-current'])).trim()
+export async function createPR(branch?: string): Promise<string> {
+  const target = branch?.trim() || (await git(['branch', '--show-current'])).trim()
   // gh can't push non-interactively, so publish the branch to origin first
-  // (also pushes the commit we just made and sets the upstream).
-  await git(['push', '--set-upstream', 'origin', branch || 'HEAD'])
-  return (await runCmd('gh', ['pr', 'create', '--fill'])).trim()
+  // (also pushes any local commits and sets the upstream).
+  await git(['push', '--set-upstream', 'origin', target || 'HEAD'])
+  const args = ['pr', 'create', '--fill']
+  if (branch) args.push('--head', target)
+  return (await runCmd('gh', args)).trim()
+}
+
+/** Fetch from the remote so ahead/behind counts are current. */
+export async function fetchRemote(): Promise<void> {
+  await git(['fetch', '--prune'])
+}
+
+/** Pull (fetch + merge) then push, so the merge pipeline runs before pushing. */
+export async function sync(): Promise<MergeResult> {
+  try {
+    // --no-rebase forces a merge (the "merge pipeline") rather than erroring on
+    // divergent branches; --no-edit skips the merge-commit editor.
+    await git(['pull', '--no-rebase', '--no-edit'])
+  } catch (e) {
+    const unmerged = (await git(['diff', '--name-only', '--diff-filter=U'])).trim()
+    if (unmerged) return { conflict: true, message: (e as Error).message }
+    throw e
+  }
+  await git(['push'])
+  return { conflict: false, message: '' }
 }
 
 /** Append a single anchored line to an ignore-style file, skipping duplicates. */

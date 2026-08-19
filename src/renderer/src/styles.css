@@ -1641,9 +1641,44 @@ code {
 .pr-chip:hover {
   opacity: 0.6;
 }
+/* Closed / merged PRs are muted grey. */
+.pr-chip.closed {
+  color: var(--text-dim);
+  background: var(--bg-3);
+  border-color: var(--border-strong);
+}
 .pr-icon {
   display: block;
   flex: 0 0 auto;
+}
+
+/* ---- Toast ------------------------------------------------------------ */
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3000;
+  background: var(--bg-3);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  animation: toastIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes toastIn {
+  from {
+    transform: translate(-50%, 16px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
 }
 
 .filter-banner {

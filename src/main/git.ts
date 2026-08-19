@@ -560,7 +560,9 @@ export async function listPRs(): Promise<PullRequest[]> {
     'pr',
     'list',
     '--state',
-    'open',
+    'all',
+    '--limit',
+    '100',
     '--json',
     'number,url,headRefName,baseRefName,title,state'
   ])

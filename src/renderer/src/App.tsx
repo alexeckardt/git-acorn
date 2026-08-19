@@ -51,6 +51,8 @@ export default function App() {
   const [renameValue, setRenameValue] = useState('')
   const [mergeConflictBranch, setMergeConflictBranch] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+  const toastTimer = useRef<number | null>(null)
 
   // ---- data loading ------------------------------------------------------
 
@@ -166,7 +168,9 @@ export default function App() {
   const prevBranch = useRef<string | undefined>(undefined)
   useEffect(() => {
     const cur = status?.branch
-    const nowOpen = new Map(prs.map((p) => [p.branch, p.base]))
+    const nowOpen = new Map(
+      prs.filter((p) => p.state === 'OPEN').map((p) => [p.branch, p.base])
+    )
     const clean = !!status && status.staged.length === 0 && status.unstaged.length === 0
     if (
       cur &&
@@ -184,12 +188,22 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prs, status])
 
+  function showToast(msg: string) {
+    setToast(msg)
+    if (toastTimer.current) window.clearTimeout(toastTimer.current)
+    toastTimer.current = window.setTimeout(() => setToast(null), 4500)
+  }
+
   async function handlePRClosed(base: string) {
     const sw = await window.gitApi.switchBranch(base)
     if (!sw.ok) return
     const pl = await window.gitApi.pull()
     await refresh(true)
-    if (pl.ok && pl.data?.conflict) setMergeConflictBranch(`origin/${base}`)
+    if (pl.ok && pl.data?.conflict) {
+      setMergeConflictBranch(`origin/${base}`)
+    } else {
+      showToast(`PR closed — switched to ${base} and pulled.`)
+    }
   }
 
   // ---- actions -----------------------------------------------------------
@@ -513,6 +527,12 @@ export default function App() {
         onPick={switchToRepo}
         onOpenNew={openRepoFromDialog}
       />
+
+      {toast && (
+        <div className="toast" onClick={() => setToast(null)}>
+          {toast}
+        </div>
+      )}
 
       {renameTarget !== null && (
         <div

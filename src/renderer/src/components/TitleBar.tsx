@@ -7,9 +7,11 @@ interface Props {
   status: RepoStatus | null
   refreshing: boolean
   syncing: boolean
+  syncing: boolean
   onSwitchRepo: () => void
   onSwitchBranch: () => void
   onRefresh: () => void
+  onSync: () => void
   onSync: () => void
 }
 

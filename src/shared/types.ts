@@ -93,6 +93,11 @@ export interface GitResult<T> {
   error?: string
 }
 
+export interface MergeResult {
+  conflict: boolean
+  message: string
+}
+
 /** The API surface exposed to the renderer via the preload bridge. */
 export interface GitApi {
   openRepoDialog: () => Promise<GitResult<RepoInfo>>

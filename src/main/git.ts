@@ -627,6 +627,38 @@ export async function sync(): Promise<MergeResult> {
   return { conflict: false, message: '' }
 }
 
+/** Fetch from the remote so ahead/behind counts are current. */
+export async function fetchRemote(): Promise<void> {
+  await git(['fetch', '--prune'])
+}
+
+/**
+ * Pull (fetch + merge) then push, so the merge pipeline runs before pushing.
+ * Handles being behind (pull), ahead (push), or diverged (merge then push).
+ */
+export async function sync(): Promise<MergeResult> {
+  try {
+    // --no-rebase forces a merge rather than erroring on divergent branches;
+    // --no-edit skips the merge-commit editor.
+    await git(['pull', '--no-rebase', '--no-edit'])
+  } catch (e) {
+    const unmerged = (await git(['diff', '--name-only', '--diff-filter=U'])).trim()
+    if (unmerged) return { conflict: true, message: (e as Error).message }
+    throw e
+  }
+  // Only push when there's an upstream to push to (a pull sets one up for
+  // tracked branches). If push has nothing to send it's a harmless no-op.
+  try {
+    await git(['push'])
+  } catch (e) {
+    // Behind-only branches with no local commits: push may complain, but the
+    // pull already did the useful work, so treat a push no-op as success.
+    const msg = (e as Error).message
+    if (!/no upstream|set-upstream/i.test(msg)) throw e
+  }
+  return { conflict: false, message: '' }
+}
+
 /** Append a single anchored line to an ignore-style file, skipping duplicates. */
 async function appendUniqueLine(file: string, entry: string): Promise<void> {
   let existing = ''

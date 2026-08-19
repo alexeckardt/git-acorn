@@ -141,6 +141,10 @@ export interface GitApi {
    * `git update-index --skip-worktree`.
    */
   hideLocally: (paths: string[]) => Promise<GitResult<void>>
+  /** Read the per-commit colour lookup table (hash → palette index), stored locally. */
+  getCommitColors: () => Promise<GitResult<Record<string, number>>>
+  /** Set (or clear, when color is null) a commit's colour index; stored locally. */
+  setCommitColor: (hash: string, color: number | null) => Promise<GitResult<void>>
   /** Rename a branch. */
   renameBranch: (oldName: string, newName: string) => Promise<GitResult<void>>
   /** Delete a branch (force uses -D). */

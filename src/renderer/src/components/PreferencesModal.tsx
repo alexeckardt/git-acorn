@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { setPref, usePrefs } from '../lib/prefs'
 import { PREFIXES } from '../lib/branchDisplay'
+import { LANE_COLORS } from '../lib/graph'
 import Icon from './Icon'
 
 interface Props {
@@ -93,6 +94,38 @@ export default function PreferencesModal({ open, onClose }: Props) {
               />
               <span className="switch-slider" />
             </label>
+          </div>
+
+          <div className="prefs-row">
+            <div className="prefs-row-text">
+              <div className="prefs-row-label">Branch graph colours</div>
+              <div className="prefs-row-desc">
+                The palette for lanes in the graph and branch pills. It repeats when there are
+                more branches than colours.
+              </div>
+            </div>
+            <div className="lane-colors">
+              {prefs.laneColors.map((c, i) => (
+                <input
+                  key={i}
+                  type="color"
+                  className="lane-color"
+                  value={c}
+                  title={`Lane colour ${i + 1}`}
+                  onChange={(e) => {
+                    const next = [...prefs.laneColors]
+                    next[i] = e.target.value
+                    setPref('laneColors', next)
+                  }}
+                />
+              ))}
+              <button
+                className="text-btn lane-reset"
+                onClick={() => setPref('laneColors', [...LANE_COLORS])}
+              >
+                Reset
+              </button>
+            </div>
           </div>
 
           <div className="prefs-row">

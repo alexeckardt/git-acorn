@@ -34,28 +34,41 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const nameRef = useRef<HTMLInputElement>(null)
+  const branchBtnRef = useRef<HTMLButtonElement>(null)
+  const commitBtnRef = useRef<HTMLButtonElement>(null)
+  // Whether this "session" has been prepared. Kept across hide/show so closing
+  // is a hide (progress preserved), not a cancel; reset after a commit.
+  const startedRef = useRef(false)
 
   useEffect(() => {
     if (!open) return
-    // Reset and prepare.
+    if (!startedRef.current) {
+      startedRef.current = true
+      prepareFresh()
+    } else {
+      // Resuming a hidden wizard — just refresh the branch info, keep progress.
+      refreshBranchInfo()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    if (step === 'name') setTimeout(() => nameRef.current?.focus(), 0)
+    // Auto-select the branch section on the final step.
+    if (step === 'branch') setTimeout(() => branchBtnRef.current?.focus(), 0)
+  }, [step, open])
+
+  async function prepareFresh() {
     setStep('prep')
     setEntries([])
     setSummary('')
     setDescription('')
     setCreatePR(false)
     setError(null)
-    prepare()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
 
-  useEffect(() => {
-    if (step === 'name') setTimeout(() => nameRef.current?.focus(), 0)
-  }, [step])
-
-  async function prepare() {
     const st = await window.gitApi.status()
     let staged = st.ok && st.data ? st.data.staged : []
-    // If nothing is staged, stage everything.
     if (staged.length === 0) {
       await window.gitApi.stageAll()
       const st2 = await window.gitApi.status()
@@ -66,7 +79,11 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
       return
     }
     setStagedFiles(staged)
+    await refreshBranchInfo()
+    setStep('describe')
+  }
 
+  async function refreshBranchInfo() {
     const br = await window.gitApi.branches()
     const cur = br.ok && br.data ? br.data.current : ''
     setCurrentBranch(cur)
@@ -76,8 +93,6 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
     setGhOK(gh.ok ? !!gh.data : false)
     const pr = await window.gitApi.branchHasPR(cur)
     setHasPR(pr.ok ? !!pr.data : false)
-
-    setStep('describe')
   }
 
   const candidates = [...new Set(entries.map((e) => e.text.trim()).filter(Boolean))]
@@ -91,12 +106,11 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
       .join('\n')
     setDescription(bullets)
     const cands = [...new Set(ents.map((e) => e.text.trim()).filter(Boolean))]
-    // One change → use it as the name automatically.
     if (cands.length === 1) setSummary((s) => (s.trim() ? s : cands[0]))
     setStep('name')
   }
 
-  async function afterBranchChange() {
+  async function afterBranchChange(created?: boolean) {
     setBranchModalOpen(false)
     const br = await window.gitApi.branches()
     const cur = br.ok && br.data ? br.data.current : currentBranch
@@ -104,7 +118,13 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
     const pr = await window.gitApi.branchHasPR(cur)
     const has = pr.ok ? !!pr.data : false
     setHasPR(has)
-    if (has || cur === defaultBr) setCreatePR(false)
+    if (has || cur === defaultBr) {
+      setCreatePR(false)
+    } else if (created) {
+      // Chose a brand-new branch → default to opening a PR for it.
+      setCreatePR(true)
+    }
+    setTimeout(() => branchBtnRef.current?.focus(), 0)
   }
 
   const onDefault = !!currentBranch && currentBranch === defaultBr
@@ -135,22 +155,39 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
       onDone()
       setBusy(false)
     }
+    // Committed — reset so the next open starts fresh.
+    startedRef.current = false
+    setEntries([])
+    setSummary('')
+    setDescription('')
+    setCreatePR(false)
+    setStep('prep')
     onClose()
   }
 
   function onContainerKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
       e.preventDefault()
-      onClose()
+      onClose() // hide, keeping progress
+    } else if (
+      (e.metaKey || e.ctrlKey) &&
+      e.key === 'Enter' &&
+      (step === 'name' || step === 'branch')
+    ) {
+      // ⌘/Ctrl+Enter submits from the later steps (describe owns it for priming).
+      e.preventDefault()
+      doCommit()
     }
   }
-
-  if (!open) return null
 
   const activeIdx = STEP_LABELS.findIndex((s) => s.key === step)
 
   return (
-    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className="modal-overlay"
+      style={{ display: open ? 'flex' : 'none' }}
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div
         className={`wizard-modal${step === 'describe' ? ' wizard-wide' : ''}`}
         onMouseDown={(e) => e.stopPropagation()}
@@ -170,7 +207,7 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
               </div>
             ))}
           </div>
-          <button className="icon-btn" title="Close (Esc)" onClick={onClose}>
+          <button className="icon-btn" title="Hide (Esc) — your descriptions are kept" onClick={onClose}>
             ✕
           </button>
         </div>
@@ -193,7 +230,7 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && summary.trim()) {
+                if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey && summary.trim()) {
                   e.preventDefault()
                   setStep('branch')
                 }
@@ -242,7 +279,19 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
                 <span className="branch-icon">⑂</span> {currentBranch || '(detached)'}
                 {onDefault && <span className="branch-badge">default</span>}
               </span>
-              <button className="tb-btn" onClick={() => setBranchModalOpen(true)}>
+              <button
+                ref={branchBtnRef}
+                className="tb-btn"
+                onClick={() => setBranchModalOpen(true)}
+                onKeyDown={(e) => {
+                  // ↵ opens the branch picker (native click); ↓ moves to Commit.
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault()
+                    commitBtnRef.current?.focus()
+                  }
+                }}
+                title="Enter to change / create a branch, ↓ to continue"
+              >
                 Change / new…
               </button>
             </div>
@@ -286,7 +335,13 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
               <button className="tb-btn" onClick={() => setStep('name')}>
                 Back
               </button>
-              <button className="tb-btn primary" disabled={!summary.trim()} onClick={doCommit}>
+              <button
+                ref={commitBtnRef}
+                className="tb-btn primary"
+                disabled={!summary.trim()}
+                onClick={doCommit}
+                title="⌘/Ctrl+Enter"
+              >
                 Commit
               </button>
             </div>

@@ -6,7 +6,8 @@ import Icon from './Icon'
 interface Props {
   open: boolean
   onClose: () => void
-  onDone: () => void
+  /** created=true when a new branch was made (vs switching to an existing one). */
+  onDone: (created?: boolean) => void
 }
 
 type Option = { type: 'switch' | 'create'; name: string }
@@ -69,7 +70,7 @@ export default function BranchModal({ open, onClose, onDone }: Props) {
         : await window.gitApi.switchBranch(opt.name)
     setBusy(false)
     if (res.ok) {
-      onDone()
+      onDone(opt.type === 'create')
       onClose()
     } else {
       setError(res.error ?? 'Branch operation failed')

@@ -12,12 +12,15 @@ export interface Preferences {
   commitWorkflow: CommitWorkflow
   /** Prefix pre-selected when creating a new branch (e.g. "feat/", or ""). */
   defaultBranchPrefix: string
+  /** When the current branch's PR closes, switch to its base and pull. */
+  autoSwitchOnPRClose: boolean
 }
 
 const DEFAULTS: Preferences = {
   autoDescribe: true,
   commitWorkflow: 'desktop',
-  defaultBranchPrefix: ''
+  defaultBranchPrefix: '',
+  autoSwitchOnPRClose: true
 }
 
 const KEY = 'git-acorn.prefs'

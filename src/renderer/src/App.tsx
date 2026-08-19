@@ -19,6 +19,7 @@ import PreferencesModal from './components/PreferencesModal'
 import SwitchRepoModal from './components/SwitchRepoModal'
 import { installShortcuts, registerCommand, runCommand } from './lib/commands'
 import { addRecentRepo, getRecentRepos, removeRecentRepo } from './lib/recentRepos'
+import { getPrefs } from './lib/prefs'
 
 export default function App() {
   const [repo, setRepo] = useState<RepoInfo | null>(null)
@@ -71,7 +72,9 @@ export default function App() {
 
   const loadPRs = useCallback(async () => {
     const res = await window.gitApi.listPRs()
-    setPrs(res.ok && res.data ? res.data : [])
+    // Only update on success — on failure keep the last list so a gh hiccup
+    // doesn't read as "all PRs closed".
+    if (res.ok && res.data) setPrs(res.data)
   }, [])
 
   const refresh = useCallback(
@@ -141,12 +144,13 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo, fileFilter])
 
-  // Auto-refresh whenever the user returns to the app (window focus / tab back).
+  // Auto-refresh (and fetch) whenever the user returns to the app — that's when
+  // a PR merged on GitHub gets noticed and the auto-switch can kick in.
   useEffect(() => {
     if (!repo) return
-    const onFocus = () => refresh()
+    const onFocus = () => refresh(true)
     const onVisible = () => {
-      if (document.visibilityState === 'visible') refresh()
+      if (document.visibilityState === 'visible') refresh(true)
     }
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onVisible)
@@ -155,6 +159,38 @@ export default function App() {
       document.removeEventListener('visibilitychange', onVisible)
     }
   }, [repo, refresh])
+
+  // When the current branch's open PR disappears (merged/closed), switch to its
+  // base branch and pull — controlled by the autoSwitchOnPRClose preference.
+  const prevOpenPRs = useRef<Map<string, string>>(new Map())
+  const prevBranch = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    const cur = status?.branch
+    const nowOpen = new Map(prs.map((p) => [p.branch, p.base]))
+    const clean = !!status && status.staged.length === 0 && status.unstaged.length === 0
+    if (
+      cur &&
+      cur === prevBranch.current && // only if we stayed on the same branch
+      clean && // don't yank the user away from uncommitted work
+      prevOpenPRs.current.has(cur) &&
+      !nowOpen.has(cur) &&
+      getPrefs().autoSwitchOnPRClose
+    ) {
+      const base = prevOpenPRs.current.get(cur)
+      if (base) handlePRClosed(base)
+    }
+    prevOpenPRs.current = nowOpen
+    prevBranch.current = cur
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prs, status])
+
+  async function handlePRClosed(base: string) {
+    const sw = await window.gitApi.switchBranch(base)
+    if (!sw.ok) return
+    const pl = await window.gitApi.pull()
+    await refresh(true)
+    if (pl.ok && pl.data?.conflict) setMergeConflictBranch(`origin/${base}`)
+  }
 
   // ---- actions -----------------------------------------------------------
 

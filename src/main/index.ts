@@ -223,6 +223,7 @@ function registerIpc(): void {
   ipcMain.handle('git:branchHasPR', (_e, branch: string) => wrap(() => g.branchHasPR(branch)))
   ipcMain.handle('git:createPR', (_e, branch?: string) => wrap(() => g.createPR(branch)))
   ipcMain.handle('git:fetch', () => wrap(() => g.fetchRemote()))
+  ipcMain.handle('git:pull', () => wrap(() => g.pull()))
   ipcMain.handle('git:sync', () => wrap(() => g.sync()))
   ipcMain.handle('git:renameBranch', (_e, oldName: string, newName: string) =>
     wrap(() => g.renameBranch(oldName, newName))

@@ -25,6 +25,7 @@ const api: GitApi = {
   branchHasPR: (branch) => ipcRenderer.invoke('git:branchHasPR', branch),
   createPR: (branch) => ipcRenderer.invoke('git:createPR', branch),
   fetch: () => ipcRenderer.invoke('git:fetch'),
+  pull: () => ipcRenderer.invoke('git:pull'),
   sync: () => ipcRenderer.invoke('git:sync'),
   renameBranch: (oldName, newName) => ipcRenderer.invoke('git:renameBranch', oldName, newName),
   deleteBranch: (name, force) => ipcRenderer.invoke('git:deleteBranch', name, force),

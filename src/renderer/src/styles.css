@@ -1338,6 +1338,7 @@ code {
 .desc-embedded {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
 }
 
@@ -1395,6 +1396,7 @@ code {
   flex: 1;
   display: flex;
   min-height: 0;
+  min-width: 0;
 }
 .desc-main {
   flex: 1;
@@ -1849,6 +1851,7 @@ code {
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-width: 0;
   min-height: 0;
   background: var(--bg-1);
 }
@@ -1893,6 +1896,7 @@ code {
   flex: 1;
   overflow: auto;
   min-height: 0;
+  min-width: 0;
 }
 .diff-empty {
   padding: 40px;
@@ -1915,4 +1919,28 @@ code {
 .d2h-wrap .d2h-code-line,
 .d2h-wrap .d2h-code-side-line {
   font-family: var(--mono);
+}
+
+/*
+ * diff2html positions its line-number cells `position: absolute`, so without a
+ * positioned row ancestor they anchor to the viewport and don't align/scroll.
+ * Making each row a containing block pins the numbers to their own line.
+ */
+.d2h-wrap tr {
+  position: relative;
+}
+/*
+ * Keep side-by-side within the pane: its two panels are flex children, which
+ * default to min-width:auto and refuse to shrink below their (wide) content,
+ * pushing the layout wider. min-width:0 lets them shrink to 50% and scroll
+ * their long lines internally instead of overflowing.
+ */
+.d2h-wrap,
+.d2h-wrap .d2h-files-diff {
+  max-width: 100%;
+  min-width: 0;
+}
+.d2h-wrap .d2h-file-side-diff {
+  min-width: 0;
+  overflow-x: auto;
 }

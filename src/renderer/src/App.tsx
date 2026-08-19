@@ -441,7 +441,6 @@ export default function App() {
         status={status}
         refreshing={refreshing}
         syncing={syncing}
-        syncing={syncing}
         onSwitchRepo={openSwitchRepo}
         onSwitchBranch={() => setNewBranchOpen(true)}
         onRefresh={() => refresh(true)}

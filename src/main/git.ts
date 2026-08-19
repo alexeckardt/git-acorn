@@ -612,26 +612,6 @@ export async function pull(): Promise<MergeResult> {
   return { conflict: false, message: '' }
 }
 
-/** Pull (fetch + merge) then push, so the merge pipeline runs before pushing. */
-export async function sync(): Promise<MergeResult> {
-  try {
-    // --no-rebase forces a merge (the "merge pipeline") rather than erroring on
-    // divergent branches; --no-edit skips the merge-commit editor.
-    await git(['pull', '--no-rebase', '--no-edit'])
-  } catch (e) {
-    const unmerged = (await git(['diff', '--name-only', '--diff-filter=U'])).trim()
-    if (unmerged) return { conflict: true, message: (e as Error).message }
-    throw e
-  }
-  await git(['push'])
-  return { conflict: false, message: '' }
-}
-
-/** Fetch from the remote so ahead/behind counts are current. */
-export async function fetchRemote(): Promise<void> {
-  await git(['fetch', '--prune'])
-}
-
 /**
  * Pull (fetch + merge) then push, so the merge pipeline runs before pushing.
  * Handles being behind (pull), ahead (push), or diverged (merge then push).

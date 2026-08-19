@@ -46,10 +46,16 @@ export default function CommitBox({ status, onCommitted, onSync, syncing }: Prop
     if (hasChanges) setShowWizard(true);
   }
 
-  // Ctrl/Cmd+Enter runs whichever workflow is configured.
+  // Ctrl/Cmd+Enter runs whatever the bottom-left button does (Sync if the
+  // button is currently a Sync button, otherwise commit / wizard).
   function handleCommitShortcut() {
-    if (commitWorkflow === "wizard") openWizard();
-    else doCommit();
+    if (showSync) {
+      onSync();
+    } else if (commitWorkflow === "wizard") {
+      openWizard();
+    } else {
+      doCommit();
+    }
   }
 
   // Expose commit / describe as app commands (menu + shortcuts). Refs keep the

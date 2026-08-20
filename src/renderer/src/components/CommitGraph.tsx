@@ -68,6 +68,9 @@ export default function CommitGraph({
   const laneColorOf = (col: number): string => palette[col % palette.length]
 
   const currentBranch = status?.branch ?? ''
+  // With a detached HEAD there's no branch to merge into, so status.branch is
+  // the '(detached)' sentinel from the backend — treat it as "no branch".
+  const detachedHead = !currentBranch || currentBranch === '(detached)'
   const prByBranch = useMemo(() => {
     const m = new Map<string, PullRequest>()
     for (const p of prs) {
@@ -196,7 +199,7 @@ export default function CommitGraph({
     if (isLocal) {
       items.push({ label: 'Rename branch…', onClick: () => onRenameBranch(name) })
       items.push({ label: 'Delete branch…', danger: true, onClick: () => onDeleteBranch(name) })
-      if (name !== currentBranch && currentBranch) {
+      if (name !== currentBranch && !detachedHead) {
         items.push({
           label: `Merge into ${currentBranch}…`,
           onClick: () => onMergeBranch(name)

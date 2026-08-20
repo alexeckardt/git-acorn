@@ -1,5 +1,6 @@
 import type { RepoInfo, RepoStatus } from '../../../shared/types'
 import { isMac } from '../lib/commands'
+import { useAcorns } from '../lib/acorns'
 import Icon from './Icon'
 
 interface Props {
@@ -23,6 +24,7 @@ export default function TitleBar({
   onRefresh,
   onSync
 }: Props) {
+  const acorns = useAcorns()
   const branchShortcut = `${isMac ? '⌘' : 'Ctrl+'}B`
   const ahead = status?.ahead ?? 0
   const behind = status?.behind ?? 0
@@ -33,6 +35,12 @@ export default function TitleBar({
       <div className="titlebar-left">
         <span className="brand">🌰 git-acorn</span>
         {repo && <span className="repo-name">{repo.name}</span>}
+        <span
+          className="acorn-tally"
+          title={`${acorns} acorn${acorns === 1 ? '' : 's'} stolen — click the little guys to shake them loose`}
+        >
+          🌰 {acorns}
+        </span>
       </div>
       <div className="titlebar-right">
         {status && (

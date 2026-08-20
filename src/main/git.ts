@@ -12,6 +12,7 @@ import type {
   DiffSource,
   FileStatus,
   MergeResult,
+  PRMergeStatus,
   PullRequest,
   RepoInfo,
   RepoStatus
@@ -582,6 +583,77 @@ export async function listPRs(): Promise<PullRequest[]> {
     title: p.title,
     state: p.state
   }))
+}
+
+/** Collapse a PR's status-check rollup into one of four states. */
+function rollupChecks(
+  rollup: Array<Record<string, unknown>> | undefined
+): 'passing' | 'failing' | 'pending' | 'none' {
+  if (!rollup || rollup.length === 0) return 'none'
+  let pending = false
+  for (const c of rollup) {
+    if (c.__typename === 'StatusContext') {
+      // Legacy commit statuses carry a `state`.
+      const s = String(c.state ?? '').toUpperCase()
+      if (s === 'FAILURE' || s === 'ERROR') return 'failing'
+      if (s === 'PENDING' || s === 'EXPECTED') pending = true
+    } else {
+      // Check runs carry `status` (lifecycle) + `conclusion` (result).
+      const status = String(c.status ?? '').toUpperCase()
+      const conclusion = String(c.conclusion ?? '').toUpperCase()
+      if (status !== 'COMPLETED') {
+        pending = true
+        continue
+      }
+      if (
+        ['FAILURE', 'TIMED_OUT', 'CANCELLED', 'ACTION_REQUIRED', 'STARTUP_FAILURE'].includes(
+          conclusion
+        )
+      ) {
+        return 'failing'
+      }
+    }
+  }
+  return pending ? 'pending' : 'passing'
+}
+
+/**
+ * Report whether a branch's PR can be merged cleanly from here (open, no
+ * conflicts, checks not failing/pending) or needs attention on GitHub.
+ */
+export async function prStatus(branch: string): Promise<PRMergeStatus> {
+  const out = await runCmd('gh', [
+    'pr',
+    'view',
+    branch,
+    '--json',
+    'number,state,mergeable,statusCheckRollup,url'
+  ])
+  const p = JSON.parse(out) as {
+    state: string
+    mergeable: string
+    statusCheckRollup?: Array<Record<string, unknown>>
+  }
+  const state = (p.state ?? 'UNKNOWN').toUpperCase()
+  const mergeable = (p.mergeable ?? 'UNKNOWN').toUpperCase()
+  const checks = rollupChecks(p.statusCheckRollup)
+
+  const canMerge =
+    state === 'OPEN' && mergeable === 'MERGEABLE' && (checks === 'passing' || checks === 'none')
+
+  let reason = ''
+  if (state !== 'OPEN') reason = `This pull request is already ${state.toLowerCase()}.`
+  else if (mergeable === 'CONFLICTING') reason = 'This pull request has merge conflicts.'
+  else if (checks === 'failing') reason = 'Some checks are failing.'
+  else if (checks === 'pending') reason = 'Checks are still running.'
+  else if (mergeable !== 'MERGEABLE') reason = 'Mergeability is still being computed.'
+
+  return { state, mergeable, checks, canMerge, reason }
+}
+
+/** Merge a branch's PR remotely via gh (a merge commit). */
+export async function mergePR(branch: string): Promise<void> {
+  await runCmd('gh', ['pr', 'merge', branch, '--merge'])
 }
 
 /** Push the current branch to origin, then open a PR. Returns the PR URL. */

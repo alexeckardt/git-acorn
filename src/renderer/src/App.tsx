@@ -322,6 +322,22 @@ export default function App() {
     }
   }
 
+  async function mergePullRequest(pr: PullRequest) {
+    const res = await window.gitApi.mergePR(pr.branch)
+    if (res.ok) {
+      showToast(`Merged PR #${pr.number} into ${pr.base}`)
+      refresh(true)
+    } else if (
+      // The pre-check passed but the merge still failed (e.g. branch
+      // protection) — offer to finish it on GitHub.
+      window.confirm(
+        `Couldn't merge PR #${pr.number}:\n\n${res.error}\n\nOpen it on GitHub instead?`
+      )
+    ) {
+      window.gitApi.openExternal(pr.url)
+    }
+  }
+
   function selectWorkingFile(file: ChangedFile) {
     setSelectedCommit(null)
     setDiffSource({
@@ -494,6 +510,7 @@ export default function App() {
                 onMergeBranch={mergeBranch}
                 onCreatePR={createPRForBranch}
                 onOpenPR={openPR}
+                onMergePR={mergePullRequest}
               />
             )}
           </div>

@@ -233,6 +233,8 @@ function registerIpc(): void {
   )
   ipcMain.handle('git:mergeBranch', (_e, name: string) => wrap(() => g.mergeBranch(name)))
   ipcMain.handle('git:listPRs', () => wrap(() => g.listPRs()))
+  ipcMain.handle('git:prStatus', (_e, branch: string) => wrap(() => g.prStatus(branch)))
+  ipcMain.handle('git:mergePR', (_e, branch: string) => wrap(() => g.mergePR(branch)))
   ipcMain.handle('git:openInEditor', () => wrap(() => openInEditor()))
   ipcMain.handle('git:openExternal', (_e, url: string) =>
     wrap(async () => {

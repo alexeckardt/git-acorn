@@ -33,6 +33,8 @@ const api: GitApi = {
   deleteBranch: (name, force) => ipcRenderer.invoke('git:deleteBranch', name, force),
   mergeBranch: (name) => ipcRenderer.invoke('git:mergeBranch', name),
   listPRs: () => ipcRenderer.invoke('git:listPRs'),
+  prStatus: (branch) => ipcRenderer.invoke('git:prStatus', branch),
+  mergePR: (branch) => ipcRenderer.invoke('git:mergePR', branch),
   openInEditor: () => ipcRenderer.invoke('git:openInEditor'),
   openExternal: (url) => ipcRenderer.invoke('git:openExternal', url)
 }

@@ -6,6 +6,8 @@ export interface MenuItem {
   danger?: boolean
   /** Render a divider above this item. */
   divider?: boolean
+  /** Muted, non-interactive row (e.g. a status hint). */
+  disabled?: boolean
 }
 
 export interface SwatchRow {
@@ -94,8 +96,10 @@ export default function ContextMenu({ x, y, items, onClose, swatches }: Props) {
         <div key={i}>
           {it.divider && <div className="menu-divider" />}
           <button
-            className={`menu-item${it.danger ? ' danger' : ''}`}
+            className={`menu-item${it.danger ? ' danger' : ''}${it.disabled ? ' disabled' : ''}`}
+            disabled={it.disabled}
             onClick={() => {
+              if (it.disabled) return
               it.onClick()
               onClose()
             }}

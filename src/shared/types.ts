@@ -82,6 +82,20 @@ export interface PullRequest {
   state: string
 }
 
+/** Whether a PR can be merged cleanly from the app, or needs the web UI. */
+export interface PRMergeStatus {
+  /** OPEN / CLOSED / MERGED / UNKNOWN. */
+  state: string
+  /** MERGEABLE / CONFLICTING / UNKNOWN. */
+  mergeable: string
+  /** Combined CI status. */
+  checks: 'passing' | 'failing' | 'pending' | 'none'
+  /** True when it's safe to merge remotely (open, mergeable, checks not bad). */
+  canMerge: boolean
+  /** Human-readable reason it can't be merged (empty when canMerge is true). */
+  reason: string
+}
+
 export interface MergeResult {
   conflict: boolean
   message: string
@@ -153,6 +167,10 @@ export interface GitApi {
   mergeBranch: (name: string) => Promise<GitResult<MergeResult>>
   /** Open PRs in the repo (best-effort via gh), keyed by head branch. */
   listPRs: () => Promise<GitResult<PullRequest[]>>
+  /** Whether a branch's PR can be merged from here, or needs GitHub. */
+  prStatus: (branch: string) => Promise<GitResult<PRMergeStatus>>
+  /** Merge a branch's PR remotely via gh (a merge commit). */
+  mergePR: (branch: string) => Promise<GitResult<void>>
   /** Open the repo folder in the user's code editor (VS Code, …). */
   openInEditor: () => Promise<GitResult<void>>
   /** Open a URL in the default browser. */

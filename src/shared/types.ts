@@ -82,6 +82,20 @@ export interface PullRequest {
   state: string
 }
 
+/** Whether a PR can be merged cleanly from the app, or needs the web UI. */
+export interface PRMergeStatus {
+  /** OPEN / CLOSED / MERGED / UNKNOWN. */
+  state: string
+  /** MERGEABLE / CONFLICTING / UNKNOWN. */
+  mergeable: string
+  /** Combined CI status. */
+  checks: 'passing' | 'failing' | 'pending' | 'none'
+  /** True when it's safe to merge remotely (open, mergeable, checks not bad). */
+  canMerge: boolean
+  /** Human-readable reason it can't be merged (empty when canMerge is true). */
+  reason: string
+}
+
 export interface MergeResult {
   conflict: boolean
   message: string
@@ -119,6 +133,8 @@ export interface GitApi {
   branches: () => Promise<GitResult<{ current: string; all: string[] }>>
   /** Switch to an existing branch (carries over uncommitted changes). */
   switchBranch: (name: string) => Promise<GitResult<void>>
+  /** Create a local branch tracking a remote-tracking branch, and switch to it. */
+  checkoutRemote: (remoteRef: string) => Promise<GitResult<void>>
   /** The repo's default branch (remote HEAD, else local main/master). */
   defaultBranch: () => Promise<GitResult<string>>
   /** Whether the GitHub CLI is installed. */
@@ -153,6 +169,10 @@ export interface GitApi {
   mergeBranch: (name: string) => Promise<GitResult<MergeResult>>
   /** Open PRs in the repo (best-effort via gh), keyed by head branch. */
   listPRs: () => Promise<GitResult<PullRequest[]>>
+  /** Whether a branch's PR can be merged from here, or needs GitHub. */
+  prStatus: (branch: string) => Promise<GitResult<PRMergeStatus>>
+  /** Merge a branch's PR remotely via gh (a merge commit). */
+  mergePR: (branch: string) => Promise<GitResult<void>>
   /** Open the repo folder in the user's code editor (VS Code, …). */
   openInEditor: () => Promise<GitResult<void>>
   /** Open a URL in the default browser. */

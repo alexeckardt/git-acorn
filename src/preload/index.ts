@@ -22,6 +22,7 @@ const api: GitApi = {
   createBranch: (name) => ipcRenderer.invoke('git:createBranch', name),
   branches: () => ipcRenderer.invoke('git:branches'),
   switchBranch: (name) => ipcRenderer.invoke('git:switchBranch', name),
+  checkoutRemote: (remoteRef) => ipcRenderer.invoke('git:checkoutRemote', remoteRef),
   defaultBranch: () => ipcRenderer.invoke('git:defaultBranch'),
   ghAvailable: () => ipcRenderer.invoke('git:ghAvailable'),
   branchHasPR: (branch) => ipcRenderer.invoke('git:branchHasPR', branch),
@@ -33,6 +34,8 @@ const api: GitApi = {
   deleteBranch: (name, force) => ipcRenderer.invoke('git:deleteBranch', name, force),
   mergeBranch: (name) => ipcRenderer.invoke('git:mergeBranch', name),
   listPRs: () => ipcRenderer.invoke('git:listPRs'),
+  prStatus: (branch) => ipcRenderer.invoke('git:prStatus', branch),
+  mergePR: (branch) => ipcRenderer.invoke('git:mergePR', branch),
   openInEditor: () => ipcRenderer.invoke('git:openInEditor'),
   openExternal: (url) => ipcRenderer.invoke('git:openExternal', url)
 }

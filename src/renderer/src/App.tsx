@@ -257,6 +257,12 @@ export default function App() {
     else alert(res.error)
   }
 
+  async function checkoutRemoteBranch(remoteRef: string) {
+    const res = await window.gitApi.checkoutRemote(remoteRef)
+    if (res.ok) refresh()
+    else alert(res.error)
+  }
+
   function startRenameBranch(name: string) {
     setRenameTarget(name)
     setRenameValue(name)
@@ -319,6 +325,22 @@ export default function App() {
       refresh()
     } else {
       alert(res.error ?? 'Could not create the pull request')
+    }
+  }
+
+  async function mergePullRequest(pr: PullRequest) {
+    const res = await window.gitApi.mergePR(pr.branch)
+    if (res.ok) {
+      showToast(`Merged PR #${pr.number} into ${pr.base}`)
+      refresh(true)
+    } else if (
+      // The pre-check passed but the merge still failed (e.g. branch
+      // protection) — offer to finish it on GitHub.
+      window.confirm(
+        `Couldn't merge PR #${pr.number}:\n\n${res.error}\n\nOpen it on GitHub instead?`
+      )
+    ) {
+      window.gitApi.openExternal(pr.url)
     }
   }
 
@@ -489,11 +511,13 @@ export default function App() {
                 fileFilter={fileFilter}
                 onClearFilter={() => setFileFilter(null)}
                 onCheckoutBranch={checkoutBranch}
+                onCheckoutRemote={checkoutRemoteBranch}
                 onRenameBranch={startRenameBranch}
                 onDeleteBranch={deleteBranch}
                 onMergeBranch={mergeBranch}
                 onCreatePR={createPRForBranch}
                 onOpenPR={openPR}
+                onMergePR={mergePullRequest}
               />
             )}
           </div>

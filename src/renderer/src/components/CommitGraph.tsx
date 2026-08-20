@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Commit, PullRequest, RepoStatus } from '../../../shared/types'
+import type { Commit, PRMergeStatus, PullRequest, RepoStatus } from '../../../shared/types'
 import { COMMIT_TINTS, computeGraph, LANE_COLORS } from '../lib/graph'
 import { usePrefs } from '../lib/prefs'
 import { colorFromString, initials, relativeTime } from '../lib/util'
@@ -22,11 +22,13 @@ interface Props {
   fileFilter: string | null
   onClearFilter: () => void
   onCheckoutBranch: (name: string) => void
+  onCheckoutRemote: (remoteRef: string) => void
   onRenameBranch: (name: string) => void
   onDeleteBranch: (name: string) => void
   onMergeBranch: (name: string) => void
   onCreatePR: (name: string) => void
   onOpenPR: (url: string) => void
+  onMergePR: (pr: PullRequest) => void
 }
 
 export default function CommitGraph({
@@ -39,11 +41,13 @@ export default function CommitGraph({
   fileFilter,
   onClearFilter,
   onCheckoutBranch,
+  onCheckoutRemote,
   onRenameBranch,
   onDeleteBranch,
   onMergeBranch,
   onCreatePR,
-  onOpenPR
+  onOpenPR,
+  onMergePR
 }: Props) {
   const [search, setSearch] = useState('')
   const [tipsOnly, setTipsOnly] = useState(false)
@@ -51,6 +55,13 @@ export default function CommitGraph({
     null
   )
   const [commitMenu, setCommitMenu] = useState<{ x: number; y: number; hash: string } | null>(null)
+  const [prMenu, setPrMenu] = useState<{
+    x: number
+    y: number
+    pr: PullRequest
+    status: PRMergeStatus | null
+    loading: boolean
+  } | null>(null)
   const [commitColors, setCommitColors] = useState<Record<string, number>>({})
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -59,6 +70,10 @@ export default function CommitGraph({
   const laneColorOf = (col: number): string => palette[col % palette.length]
 
   const currentBranch = status?.branch ?? ''
+  // With a detached HEAD there's no branch to merge into, so status.branch is
+  // the '(detached)' sentinel from the backend — treat it as "no branch".
+  const detachedHead = !currentBranch || currentBranch === '(detached)'
+
   const prByBranch = useMemo(() => {
     const m = new Map<string, PullRequest>()
     for (const p of prs) {
@@ -181,19 +196,23 @@ export default function CommitGraph({
 
   function branchMenuItems(name: string, isLocal: boolean): MenuItem[] {
     const items: MenuItem[] = []
-    if (name !== currentBranch) {
-      items.push({ label: 'Checkout branch', onClick: () => onCheckoutBranch(name) })
-    }
     if (isLocal) {
+      if (name !== currentBranch) {
+        items.push({ label: 'Checkout branch', onClick: () => onCheckoutBranch(name) })
+      }
       items.push({ label: 'Rename branch…', onClick: () => onRenameBranch(name) })
       items.push({ label: 'Delete branch…', danger: true, onClick: () => onDeleteBranch(name) })
-      if (name !== currentBranch && currentBranch) {
+      if (name !== currentBranch && !detachedHead) {
         items.push({
           label: `Merge into ${currentBranch}…`,
           onClick: () => onMergeBranch(name)
         })
       }
       items.push({ label: 'Create pull request…', onClick: () => onCreatePR(name) })
+    } else {
+      // Remote-tracking branch (e.g. origin/feature-x): checking it out creates
+      // (or switches to) a local branch of the same name tracking the remote.
+      items.push({ label: 'Checkout branch', onClick: () => onCheckoutRemote(name) })
     }
     items.push({
       label: 'Copy branch name',
@@ -207,6 +226,41 @@ export default function CommitGraph({
     e.preventDefault()
     e.stopPropagation()
     setBranchMenu({ x: e.clientX, y: e.clientY, items: branchMenuItems(name, isLocal) })
+  }
+
+  async function openPrMenu(e: React.MouseEvent, pr: PullRequest) {
+    e.preventDefault()
+    e.stopPropagation()
+    setPrMenu({ x: e.clientX, y: e.clientY, pr, status: null, loading: true })
+    const res = await window.gitApi.prStatus(pr.branch)
+    setPrMenu((m) =>
+      m && m.pr.number === pr.number
+        ? { ...m, status: res.ok && res.data ? res.data : null, loading: false }
+        : m
+    )
+  }
+
+  function prMenuItems(pr: PullRequest, status: PRMergeStatus | null, loading: boolean): MenuItem[] {
+    const items: MenuItem[] = [{ label: `Open PR #${pr.number}`, onClick: () => onOpenPR(pr.url) }]
+    if (loading) {
+      items.push({ label: 'Checking mergeability…', disabled: true, onClick: () => {}, divider: true })
+      return items
+    }
+    if (!status) {
+      items.push({
+        label: 'Merge — status unavailable, open on GitHub',
+        divider: true,
+        onClick: () => onOpenPR(pr.url)
+      })
+      return items
+    }
+    if (status.canMerge) {
+      items.push({ label: 'Merge pull request', divider: true, onClick: () => onMergePR(pr) })
+    } else {
+      items.push({ label: status.reason, disabled: true, divider: true, onClick: () => {} })
+      items.push({ label: 'Resolve on GitHub…', onClick: () => onOpenPR(pr.url) })
+    }
+    return items
   }
 
   const searchHit = (name: string) =>
@@ -329,11 +383,12 @@ export default function CommitGraph({
                         className={`pr-chip${closed ? ' closed' : ''}`}
                         title={`PR #${pr.number}: ${pr.title}${
                           closed ? ` (${pr.state.toLowerCase()})` : ''
-                        } — double-click to open`}
+                        } — double-click to open, right-click for actions`}
                         onDoubleClick={(e) => {
                           e.stopPropagation()
                           onOpenPR(pr.url)
                         }}
+                        onContextMenu={(e) => openPrMenu(e, pr)}
                       >
                         <Icon name="git-pull-request" size={13} className="pr-icon" />#{pr.number}
                       </span>
@@ -421,6 +476,15 @@ export default function CommitGraph({
             }
           ]}
           onClose={() => setCommitMenu(null)}
+        />
+      )}
+
+      {prMenu && (
+        <ContextMenu
+          x={prMenu.x}
+          y={prMenu.y}
+          items={prMenuItems(prMenu.pr, prMenu.status, prMenu.loading)}
+          onClose={() => setPrMenu(null)}
         />
       )}
     </div>

@@ -768,6 +768,14 @@ code {
   background: rgba(224, 145, 155, 0.16);
   color: var(--red);
 }
+.menu-item.disabled {
+  color: var(--text-faint);
+  cursor: default;
+  font-size: 12px;
+}
+.menu-item.disabled:hover {
+  background: none;
+}
 .menu-divider {
   height: 1px;
   background: var(--border);

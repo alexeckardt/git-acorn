@@ -257,6 +257,12 @@ export default function App() {
     else alert(res.error)
   }
 
+  async function checkoutRemoteBranch(remoteRef: string) {
+    const res = await window.gitApi.checkoutRemote(remoteRef)
+    if (res.ok) refresh()
+    else alert(res.error)
+  }
+
   function startRenameBranch(name: string) {
     setRenameTarget(name)
     setRenameValue(name)
@@ -505,6 +511,7 @@ export default function App() {
                 fileFilter={fileFilter}
                 onClearFilter={() => setFileFilter(null)}
                 onCheckoutBranch={checkoutBranch}
+                onCheckoutRemote={checkoutRemoteBranch}
                 onRenameBranch={startRenameBranch}
                 onDeleteBranch={deleteBranch}
                 onMergeBranch={mergeBranch}

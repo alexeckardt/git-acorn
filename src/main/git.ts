@@ -477,6 +477,21 @@ export async function switchBranch(name: string): Promise<void> {
   await git(['checkout', trimmed])
 }
 
+/**
+ * Create a local branch tracking a remote-tracking branch and switch to it.
+ * `origin/feature-x` becomes a local `feature-x` set to track the remote —
+ * the same thing `git checkout feature-x` does when only the remote exists.
+ */
+export async function checkoutRemote(remoteRef: string): Promise<void> {
+  const ref = remoteRef.trim()
+  if (!ref) throw new Error('Remote branch is required')
+  // Strip the remote name (first path segment): origin/feat/x -> feat/x.
+  const local = ref.replace(/^[^/]+\//, '')
+  if (!local) throw new Error('Could not derive a local branch name')
+  // Branching from a remote-tracking ref sets up tracking automatically.
+  await git(['checkout', '-b', local, ref])
+}
+
 /** Run an arbitrary command (e.g. `gh`) in the repo directory. */
 function runCmd(cmd: string, args: string[]): Promise<string> {
   const dir = repoPath

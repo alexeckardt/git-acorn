@@ -22,6 +22,7 @@ const api: GitApi = {
   createBranch: (name) => ipcRenderer.invoke('git:createBranch', name),
   branches: () => ipcRenderer.invoke('git:branches'),
   switchBranch: (name) => ipcRenderer.invoke('git:switchBranch', name),
+  checkoutRemote: (remoteRef) => ipcRenderer.invoke('git:checkoutRemote', remoteRef),
   defaultBranch: () => ipcRenderer.invoke('git:defaultBranch'),
   ghAvailable: () => ipcRenderer.invoke('git:ghAvailable'),
   branchHasPR: (branch) => ipcRenderer.invoke('git:branchHasPR', branch),

@@ -22,6 +22,7 @@ interface Props {
   fileFilter: string | null
   onClearFilter: () => void
   onCheckoutBranch: (name: string) => void
+  onCheckoutRemote: (remoteRef: string) => void
   onRenameBranch: (name: string) => void
   onDeleteBranch: (name: string) => void
   onMergeBranch: (name: string) => void
@@ -40,6 +41,7 @@ export default function CommitGraph({
   fileFilter,
   onClearFilter,
   onCheckoutBranch,
+  onCheckoutRemote,
   onRenameBranch,
   onDeleteBranch,
   onMergeBranch,
@@ -71,6 +73,16 @@ export default function CommitGraph({
   // With a detached HEAD there's no branch to merge into, so status.branch is
   // the '(detached)' sentinel from the backend — treat it as "no branch".
   const detachedHead = !currentBranch || currentBranch === '(detached)'
+
+  // Local branch names visible in the graph — used to tell whether a remote
+  // branch already has a local counterpart. `origin/feat/x` maps to `feat/x`.
+  const localBranches = useMemo(() => {
+    const s = new Set<string>()
+    for (const c of commits) for (const r of c.refs) if (r.type === 'branch') s.add(r.name)
+    return s
+  }, [commits])
+  const localNameOfRemote = (remoteRef: string): string => remoteRef.replace(/^[^/]+\//, '')
+
   const prByBranch = useMemo(() => {
     const m = new Map<string, PullRequest>()
     for (const p of prs) {
@@ -193,10 +205,10 @@ export default function CommitGraph({
 
   function branchMenuItems(name: string, isLocal: boolean): MenuItem[] {
     const items: MenuItem[] = []
-    if (name !== currentBranch) {
-      items.push({ label: 'Checkout branch', onClick: () => onCheckoutBranch(name) })
-    }
     if (isLocal) {
+      if (name !== currentBranch) {
+        items.push({ label: 'Checkout branch', onClick: () => onCheckoutBranch(name) })
+      }
       items.push({ label: 'Rename branch…', onClick: () => onRenameBranch(name) })
       items.push({ label: 'Delete branch…', danger: true, onClick: () => onDeleteBranch(name) })
       if (name !== currentBranch && !detachedHead) {
@@ -206,6 +218,20 @@ export default function CommitGraph({
         })
       }
       items.push({ label: 'Create pull request…', onClick: () => onCreatePR(name) })
+    } else {
+      // Remote-tracking branch (e.g. origin/feature-x).
+      const local = localNameOfRemote(name)
+      if (!localBranches.has(local)) {
+        // No local counterpart yet — offer to create one that tracks the remote.
+        items.push({
+          label: `Checkout & create “${local}”`,
+          onClick: () => onCheckoutRemote(name)
+        })
+      }
+      items.push({
+        label: 'Checkout (detached HEAD)',
+        onClick: () => onCheckoutBranch(name)
+      })
     }
     items.push({
       label: 'Copy branch name',

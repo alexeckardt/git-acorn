@@ -133,6 +133,8 @@ export interface GitApi {
   branches: () => Promise<GitResult<{ current: string; all: string[] }>>
   /** Switch to an existing branch (carries over uncommitted changes). */
   switchBranch: (name: string) => Promise<GitResult<void>>
+  /** Create a local branch tracking a remote-tracking branch, and switch to it. */
+  checkoutRemote: (remoteRef: string) => Promise<GitResult<void>>
   /** The repo's default branch (remote HEAD, else local main/master). */
   defaultBranch: () => Promise<GitResult<string>>
   /** Whether the GitHub CLI is installed. */

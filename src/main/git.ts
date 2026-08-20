@@ -478,9 +478,9 @@ export async function switchBranch(name: string): Promise<void> {
 }
 
 /**
- * Create a local branch tracking a remote-tracking branch and switch to it.
- * `origin/feature-x` becomes a local `feature-x` set to track the remote —
- * the same thing `git checkout feature-x` does when only the remote exists.
+ * Check out a remote-tracking branch. `origin/feature-x` becomes a local
+ * `feature-x` that tracks the remote (created if it doesn't exist yet, or just
+ * switched to if it already does) — the DWIM `git checkout feature-x` does.
  */
 export async function checkoutRemote(remoteRef: string): Promise<void> {
   const ref = remoteRef.trim()
@@ -488,6 +488,11 @@ export async function checkoutRemote(remoteRef: string): Promise<void> {
   // Strip the remote name (first path segment): origin/feat/x -> feat/x.
   const local = ref.replace(/^[^/]+\//, '')
   if (!local) throw new Error('Could not derive a local branch name')
+  const { all } = await branches()
+  if (all.includes(local)) {
+    await git(['checkout', local])
+    return
+  }
   // Branching from a remote-tracking ref sets up tracking automatically.
   await git(['checkout', '-b', local, ref])
 }

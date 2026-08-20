@@ -74,15 +74,6 @@ export default function CommitGraph({
   // the '(detached)' sentinel from the backend — treat it as "no branch".
   const detachedHead = !currentBranch || currentBranch === '(detached)'
 
-  // Local branch names visible in the graph — used to tell whether a remote
-  // branch already has a local counterpart. `origin/feat/x` maps to `feat/x`.
-  const localBranches = useMemo(() => {
-    const s = new Set<string>()
-    for (const c of commits) for (const r of c.refs) if (r.type === 'branch') s.add(r.name)
-    return s
-  }, [commits])
-  const localNameOfRemote = (remoteRef: string): string => remoteRef.replace(/^[^/]+\//, '')
-
   const prByBranch = useMemo(() => {
     const m = new Map<string, PullRequest>()
     for (const p of prs) {
@@ -219,19 +210,9 @@ export default function CommitGraph({
       }
       items.push({ label: 'Create pull request…', onClick: () => onCreatePR(name) })
     } else {
-      // Remote-tracking branch (e.g. origin/feature-x).
-      const local = localNameOfRemote(name)
-      if (!localBranches.has(local)) {
-        // No local counterpart yet — offer to create one that tracks the remote.
-        items.push({
-          label: `Checkout & create “${local}”`,
-          onClick: () => onCheckoutRemote(name)
-        })
-      }
-      items.push({
-        label: 'Checkout (detached HEAD)',
-        onClick: () => onCheckoutBranch(name)
-      })
+      // Remote-tracking branch (e.g. origin/feature-x): checking it out creates
+      // (or switches to) a local branch of the same name tracking the remote.
+      items.push({ label: 'Checkout branch', onClick: () => onCheckoutRemote(name) })
     }
     items.push({
       label: 'Copy branch name',

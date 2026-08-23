@@ -17,6 +17,7 @@ import TerminalModal from './components/TerminalModal'
 import BranchModal from './components/BranchModal'
 import PreferencesModal from './components/PreferencesModal'
 import SwitchRepoModal from './components/SwitchRepoModal'
+import CritterOverlay from './components/CritterOverlay'
 import { installShortcuts, registerCommand, runCommand } from './lib/commands'
 import { addRecentRepo, getRecentRepos, removeRecentRepo } from './lib/recentRepos'
 import { getPrefs } from './lib/prefs'
@@ -90,6 +91,8 @@ export default function App() {
         await Promise.all([loadStatus(), loadLog(fileFilter), loadPRs(), minSpin])
       } finally {
         setRefreshing(false)
+        // Reshuffle the little pixel-art critter to a new spot on each refresh.
+        window.dispatchEvent(new Event('critter:refresh'))
       }
     },
     [loadStatus, loadLog, loadPRs, fileFilter]
@@ -442,6 +445,7 @@ export default function App() {
           onPick={switchToRepo}
           onOpenNew={openRepoFromDialog}
         />
+        <CritterOverlay />
       </div>
     )
   }
@@ -620,6 +624,8 @@ export default function App() {
           </div>
         </div>
       )}
+
+      <CritterOverlay />
     </div>
   )
 }

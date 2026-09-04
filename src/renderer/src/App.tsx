@@ -129,6 +129,25 @@ export default function App() {
     }
   }, [])
 
+  // Escape returns the view to its base state — but only when nothing modal is
+  // up. Modals and context menus handle their own Escape (to close themselves);
+  // detect them by their live overlay/menu elements in the DOM so we don't need
+  // to enumerate every child modal's open state here. getClientRects() is empty
+  // for a display:none overlay (e.g. the always-mounted commit wizard).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      const blocked = Array.from(
+        document.querySelectorAll('.modal-overlay, .term-overlay, .context-menu')
+      ).some((el) => el.getClientRects().length > 0)
+      if (blocked) return
+      resetToBaseView()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Register the commands App owns (re-registered when `refresh` changes).
   useEffect(() => {
     const unsubs = [
@@ -252,6 +271,14 @@ export default function App() {
     setDiffTitle('')
   }
 
+  // Return to the base view: clear the selected commit, the file-history filter,
+  // and (via the event) the graph-local branch search / tips-only filters.
+  function resetToBaseView() {
+    resetSelection()
+    setFileFilter(null)
+    window.dispatchEvent(new Event('view:reset'))
+  }
+
   // ---- branch operations (from the graph's right-click menu) --------------
 
   async function checkoutBranch(name: string) {
@@ -264,6 +291,52 @@ export default function App() {
     const res = await window.gitApi.checkoutRemote(remoteRef)
     if (res.ok) refresh()
     else alert(res.error)
+  }
+
+  async function updateLocalToRemote(remoteRef: string) {
+    // Strip the remote name (origin/feat/x -> feat/x) to find the local branch.
+    const local = remoteRef.replace(/^[^/]+\//, '')
+    const isCurrent = status?.branch === local
+    const dirty = !!status && (status.staged.length > 0 || status.unstaged.length > 0)
+
+    let stash = false
+    if (isCurrent && dirty) {
+      // A hard reset would throw the changes away — refuse, but offer to keep
+      // them by stashing first (recoverable with `git stash pop`).
+      if (
+        !confirm(
+          `"${local}" has uncommitted changes, which updating to ${remoteRef} would discard.\n\n` +
+            `Stash the changes and continue? You can restore them later with "git stash pop".`
+        )
+      )
+        return
+      stash = true
+    } else if (
+      !confirm(
+        `Update the local branch to match ${remoteRef}?\n\n` +
+          `This discards any local commits on that branch that aren't on the remote.`
+      )
+    ) {
+      return
+    }
+
+    const res = await window.gitApi.updateLocalToRemote(remoteRef, stash)
+    if (res.ok) {
+      if (stash) showToast(`Stashed your changes and updated ${local} to match ${remoteRef}.`)
+      refresh(true)
+    } else {
+      alert(res.error)
+    }
+  }
+
+  async function checkoutRemoteAndPull(remoteRef: string) {
+    const res = await window.gitApi.checkoutRemoteAndPull(remoteRef)
+    await refresh(true)
+    if (res.ok && res.data?.conflict) {
+      setMergeConflictBranch(remoteRef)
+    } else if (!res.ok) {
+      alert(res.error)
+    }
   }
 
   function startRenameBranch(name: string) {
@@ -516,6 +589,8 @@ export default function App() {
                 onClearFilter={() => setFileFilter(null)}
                 onCheckoutBranch={checkoutBranch}
                 onCheckoutRemote={checkoutRemoteBranch}
+                onUpdateLocalToRemote={updateLocalToRemote}
+                onCheckoutRemoteAndPull={checkoutRemoteAndPull}
                 onRenameBranch={startRenameBranch}
                 onDeleteBranch={deleteBranch}
                 onMergeBranch={mergeBranch}

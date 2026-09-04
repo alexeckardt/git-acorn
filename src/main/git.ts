@@ -497,6 +497,50 @@ export async function checkoutRemote(remoteRef: string): Promise<void> {
   await git(['checkout', '-b', local, ref])
 }
 
+/**
+ * Force the local branch behind a remote-tracking ref to match that remote
+ * exactly. `origin/feature-x` targets a local `feature-x`. Fetches first so the
+ * remote tip is current, then:
+ *  - if that branch is checked out, hard-resets the working branch onto it
+ *    (discarding local commits/changes on the branch — "revert to the hash");
+ *  - otherwise moves (or creates) the local ref to the remote tip without
+ *    touching the working tree.
+ *
+ * A hard reset would silently discard uncommitted changes, so the caller must
+ * opt in with `stash: true` when the checked-out branch is dirty — those
+ * changes are stashed (recoverable via `git stash pop`) before the reset.
+ */
+export async function updateLocalToRemote(remoteRef: string, stash = false): Promise<void> {
+  const ref = remoteRef.trim()
+  if (!ref) throw new Error('Remote branch is required')
+  const local = ref.replace(/^[^/]+\//, '')
+  if (!local) throw new Error('Could not derive a local branch name')
+  await git(['fetch', '--prune'])
+  const { current } = await branches()
+  if (current === local) {
+    if (stash) {
+      // Only stash when there are tracked changes; untracked files aren't
+      // touched by the reset, and `git stash` errors when there's nothing to save.
+      const dirty = (await git(['status', '--porcelain', '--untracked-files=no'])).trim()
+      if (dirty) await git(['stash', 'push', '-m', `git-acorn: before update to ${ref}`])
+    }
+    await git(['reset', '--hard', ref])
+  } else {
+    // -f updates an existing local ref or creates a new one; starting from a
+    // remote-tracking ref sets up tracking.
+    await git(['branch', '-f', local, ref])
+  }
+}
+
+/**
+ * Check out the local branch for a remote-tracking ref (creating it if needed),
+ * then pull so it's up to date with the remote.
+ */
+export async function checkoutRemoteAndPull(remoteRef: string): Promise<MergeResult> {
+  await checkoutRemote(remoteRef)
+  return pull()
+}
+
 /** Run an arbitrary command (e.g. `gh`) in the repo directory. */
 function runCmd(cmd: string, args: string[]): Promise<string> {
   const dir = repoPath

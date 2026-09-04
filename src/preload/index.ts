@@ -23,6 +23,10 @@ const api: GitApi = {
   branches: () => ipcRenderer.invoke('git:branches'),
   switchBranch: (name) => ipcRenderer.invoke('git:switchBranch', name),
   checkoutRemote: (remoteRef) => ipcRenderer.invoke('git:checkoutRemote', remoteRef),
+  updateLocalToRemote: (remoteRef, stash) =>
+    ipcRenderer.invoke('git:updateLocalToRemote', remoteRef, stash),
+  checkoutRemoteAndPull: (remoteRef) =>
+    ipcRenderer.invoke('git:checkoutRemoteAndPull', remoteRef),
   defaultBranch: () => ipcRenderer.invoke('git:defaultBranch'),
   ghAvailable: () => ipcRenderer.invoke('git:ghAvailable'),
   branchHasPR: (branch) => ipcRenderer.invoke('git:branchHasPR', branch),

@@ -221,6 +221,12 @@ function registerIpc(): void {
   ipcMain.handle('git:checkoutRemote', (_e, remoteRef: string) =>
     wrap(() => g.checkoutRemote(remoteRef))
   )
+  ipcMain.handle('git:updateLocalToRemote', (_e, remoteRef: string, stash?: boolean) =>
+    wrap(() => g.updateLocalToRemote(remoteRef, stash))
+  )
+  ipcMain.handle('git:checkoutRemoteAndPull', (_e, remoteRef: string) =>
+    wrap(() => g.checkoutRemoteAndPull(remoteRef))
+  )
   ipcMain.handle('git:defaultBranch', () => wrap(() => g.defaultBranch()))
   ipcMain.handle('git:ghAvailable', () => wrap(() => g.ghAvailable()))
   ipcMain.handle('git:branchHasPR', (_e, branch: string) => wrap(() => g.branchHasPR(branch)))

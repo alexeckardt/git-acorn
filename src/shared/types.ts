@@ -135,6 +135,13 @@ export interface GitApi {
   switchBranch: (name: string) => Promise<GitResult<void>>
   /** Create a local branch tracking a remote-tracking branch, and switch to it. */
   checkoutRemote: (remoteRef: string) => Promise<GitResult<void>>
+  /**
+   * Force the local branch to match its remote-tracking ref (fetch, then reset/move).
+   * Pass `stash: true` to stash uncommitted changes on the checked-out branch first.
+   */
+  updateLocalToRemote: (remoteRef: string, stash?: boolean) => Promise<GitResult<void>>
+  /** Check out the local branch for a remote-tracking ref, then pull it up to date. */
+  checkoutRemoteAndPull: (remoteRef: string) => Promise<GitResult<MergeResult>>
   /** The repo's default branch (remote HEAD, else local main/master). */
   defaultBranch: () => Promise<GitResult<string>>
   /** Whether the GitHub CLI is installed. */

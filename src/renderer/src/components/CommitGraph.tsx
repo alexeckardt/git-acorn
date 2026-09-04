@@ -23,6 +23,8 @@ interface Props {
   onClearFilter: () => void
   onCheckoutBranch: (name: string) => void
   onCheckoutRemote: (remoteRef: string) => void
+  onUpdateLocalToRemote: (remoteRef: string) => void
+  onCheckoutRemoteAndPull: (remoteRef: string) => void
   onRenameBranch: (name: string) => void
   onDeleteBranch: (name: string) => void
   onMergeBranch: (name: string) => void
@@ -42,6 +44,8 @@ export default function CommitGraph({
   onClearFilter,
   onCheckoutBranch,
   onCheckoutRemote,
+  onUpdateLocalToRemote,
+  onCheckoutRemoteAndPull,
   onRenameBranch,
   onDeleteBranch,
   onMergeBranch,
@@ -51,6 +55,17 @@ export default function CommitGraph({
 }: Props) {
   const [search, setSearch] = useState('')
   const [tipsOnly, setTipsOnly] = useState(false)
+
+  // Escape (handled in App) resets the whole view to its base state — clear the
+  // graph-local filters (branch search + tips-only) alongside it.
+  useEffect(() => {
+    const onReset = () => {
+      setSearch('')
+      setTipsOnly(false)
+    }
+    window.addEventListener('view:reset', onReset)
+    return () => window.removeEventListener('view:reset', onReset)
+  }, [])
   const [branchMenu, setBranchMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(
     null
   )
@@ -213,6 +228,14 @@ export default function CommitGraph({
       // Remote-tracking branch (e.g. origin/feature-x): checking it out creates
       // (or switches to) a local branch of the same name tracking the remote.
       items.push({ label: 'Checkout branch', onClick: () => onCheckoutRemote(name) })
+      items.push({
+        label: 'Checkout branch and pull',
+        onClick: () => onCheckoutRemoteAndPull(name)
+      })
+      items.push({
+        label: 'Update local to match',
+        onClick: () => onUpdateLocalToRemote(name)
+      })
     }
     items.push({
       label: 'Copy branch name',

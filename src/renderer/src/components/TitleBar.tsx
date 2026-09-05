@@ -2,6 +2,7 @@ import type { RepoInfo, RepoStatus } from '../../../shared/types'
 import { isMac } from '../lib/commands'
 import { useAcorns } from '../lib/acorns'
 import Icon from './Icon'
+import WindowControls from './WindowControls'
 
 interface Props {
   repo: RepoInfo | null
@@ -99,6 +100,8 @@ export default function TitleBar({
           {repo ? 'Switch repo' : 'Open repo…'}
         </button>
       </div>
+      {/* Frameless window controls — macOS keeps its native traffic lights. */}
+      {!isMac && <WindowControls />}
     </div>
   )
 }

@@ -13,6 +13,8 @@ import * as g from './git'
 import * as term from './terminal'
 import type { DiffSource, GitResult } from '../shared/types'
 
+const IS_MAC = process.platform === 'darwin'
+
 /** Open the repo folder in a code editor, falling back to the OS file handler. */
 async function openInEditor(): Promise<void> {
   const repo = g.getRepoPath()
@@ -35,7 +37,9 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    // macOS keeps its inset traffic lights; Windows/Linux go frameless so the
+    // app can render its own title bar and window controls.
+    ...(IS_MAC ? { titleBarStyle: 'hiddenInset' as const } : { frame: false }),
     backgroundColor: '#0f1115',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -45,6 +49,12 @@ function createWindow(): void {
   })
 
   win.on('ready-to-show', () => win.show())
+
+  // Keep the renderer's maximize/restore button in sync with the actual state.
+  const sendMaxState = (): void =>
+    win.webContents.send('window:maximized', win.isMaximized())
+  win.on('maximize', sendMaxState)
+  win.on('unmaximize', sendMaxState)
 
   win.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -56,6 +66,37 @@ function createWindow(): void {
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
+}
+
+/** Resolve a repo-relative path to an absolute one, erroring if no repo is open. */
+function resolveInRepo(relPath: string): string {
+  const repo = g.getRepoPath()
+  if (!repo) throw new Error('No repository is open')
+  return join(repo, relPath)
+}
+
+/** Open a repo-relative file in the OS default app. */
+async function openFile(relPath: string): Promise<void> {
+  const err = await shell.openPath(resolveInRepo(relPath))
+  if (err) throw new Error(err)
+}
+
+/** Reveal a repo-relative file in the OS file manager (Finder/Explorer). */
+function revealFile(relPath: string): void {
+  shell.showItemInFolder(resolveInRepo(relPath))
+}
+
+/** Open a specific repo-relative file in a code editor, falling back to the OS handler. */
+async function openFileInEditor(relPath: string): Promise<void> {
+  const abs = resolveInRepo(relPath)
+  for (const editor of ['code', 'cursor', 'subl', 'zed']) {
+    const ok = await new Promise<boolean>((resolve) => {
+      execFile(editor, [abs], (err) => resolve(!err))
+    })
+    if (ok) return
+  }
+  const err = await shell.openPath(abs)
+  if (err) throw new Error(err)
 }
 
 /** Open a file in the OS default app, surfacing "no repo" and similar errors. */
@@ -215,9 +256,12 @@ function registerIpc(): void {
   ipcMain.handle('git:commit', (_e, summary: string, description: string) =>
     wrap(() => g.commit(summary, description))
   )
-  ipcMain.handle('git:createBranch', (_e, name: string) => wrap(() => g.createBranch(name)))
+  ipcMain.handle('git:createBranch', (_e, name: string, startPoint?: string) =>
+    wrap(() => g.createBranch(name, startPoint))
+  )
   ipcMain.handle('git:branches', () => wrap(() => g.branches()))
   ipcMain.handle('git:switchBranch', (_e, name: string) => wrap(() => g.switchBranch(name)))
+  ipcMain.handle('git:checkoutCommit', (_e, hash: string) => wrap(() => g.checkoutCommit(hash)))
   ipcMain.handle('git:checkoutRemote', (_e, remoteRef: string) =>
     wrap(() => g.checkoutRemote(remoteRef))
   )
@@ -244,7 +288,27 @@ function registerIpc(): void {
   ipcMain.handle('git:listPRs', () => wrap(() => g.listPRs()))
   ipcMain.handle('git:prStatus', (_e, branch: string) => wrap(() => g.prStatus(branch)))
   ipcMain.handle('git:mergePR', (_e, branch: string) => wrap(() => g.mergePR(branch)))
+  // Window controls for the custom (frameless) title bar on Windows/Linux.
+  ipcMain.on('window:minimize', (e) => BrowserWindow.fromWebContents(e.sender)?.minimize())
+  ipcMain.on('window:maximizeToggle', (e) => {
+    const w = BrowserWindow.fromWebContents(e.sender)
+    if (!w) return
+    if (w.isMaximized()) w.unmaximize()
+    else w.maximize()
+  })
+  ipcMain.on('window:close', (e) => BrowserWindow.fromWebContents(e.sender)?.close())
+  ipcMain.handle('window:isMaximized', (e) =>
+    BrowserWindow.fromWebContents(e.sender)?.isMaximized() ?? false
+  )
+
   ipcMain.handle('git:openInEditor', () => wrap(() => openInEditor()))
+  ipcMain.handle('git:openFile', (_e, path: string) => wrap(() => openFile(path)))
+  ipcMain.handle('git:openFileInEditor', (_e, path: string) => wrap(() => openFileInEditor(path)))
+  ipcMain.handle('git:revealFile', (_e, path: string) =>
+    wrap(async () => {
+      revealFile(path)
+    })
+  )
   ipcMain.handle('git:openExternal', (_e, url: string) =>
     wrap(async () => {
       await shell.openExternal(url)

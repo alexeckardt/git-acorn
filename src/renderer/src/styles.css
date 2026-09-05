@@ -26,6 +26,35 @@
   box-sizing: border-box;
 }
 
+/* Windows and Linux render heavy, unthemed native scrollbars; restyle them to
+   match the app. macOS keeps its own thin overlay scrollbars (no class). */
+.platform-win *::-webkit-scrollbar,
+.platform-linux *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.platform-win *::-webkit-scrollbar-track,
+.platform-linux *::-webkit-scrollbar-track {
+  background: transparent;
+}
+.platform-win *::-webkit-scrollbar-thumb,
+.platform-linux *::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 6px;
+  /* Inset the thumb so it reads as a rounded pill rather than a full bar. */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.platform-win *::-webkit-scrollbar-thumb:hover,
+.platform-linux *::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+  background-clip: padding-box;
+}
+.platform-win *::-webkit-scrollbar-corner,
+.platform-linux *::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 html,
 body,
 #root {
@@ -70,12 +99,22 @@ code {
   flex: 0 0 44px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 12px 0 84px; /* leave room for macOS traffic lights */
+  padding: 0 12px;
   background: var(--bg-1);
   border-bottom: 1px solid var(--border);
   -webkit-app-region: drag;
   user-select: none;
+}
+
+/* macOS leaves room for the inset traffic lights on the left. */
+.platform-mac .titlebar {
+  padding-left: 84px;
+}
+
+/* Windows/Linux window controls sit flush against the right edge. */
+.platform-win .titlebar,
+.platform-linux .titlebar {
+  padding-right: 0;
 }
 
 .titlebar-left,
@@ -84,6 +123,43 @@ code {
   align-items: center;
   gap: 10px;
   -webkit-app-region: no-drag;
+}
+
+/* The left group grabs the free space, pushing the actions (and the window
+   controls after them) to the right edge. */
+.titlebar-left {
+  margin-right: auto;
+}
+
+/* Custom min/maximize/close buttons on frameless (Windows/Linux) windows. */
+.window-controls {
+  display: flex;
+  align-self: stretch;
+  margin-left: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.win-ctrl {
+  width: 46px;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.win-ctrl:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.win-ctrl.close:hover {
+  background: var(--red);
+  color: #14121a;
 }
 
 .brand {

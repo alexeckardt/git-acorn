@@ -127,12 +127,17 @@ export interface GitApi {
   unstageAll: () => Promise<GitResult<void>>
   discard: (paths: string[]) => Promise<GitResult<void>>
   commit: (summary: string, description: string) => Promise<GitResult<void>>
-  /** Create a new branch and switch to it (carries over uncommitted changes). */
-  createBranch: (name: string) => Promise<GitResult<void>>
+  /**
+   * Create a new branch and switch to it (carries over uncommitted changes).
+   * Pass `startPoint` (e.g. a commit hash) to root the branch there instead of HEAD.
+   */
+  createBranch: (name: string, startPoint?: string) => Promise<GitResult<void>>
   /** List local branches and the current branch. */
   branches: () => Promise<GitResult<{ current: string; all: string[] }>>
   /** Switch to an existing branch (carries over uncommitted changes). */
   switchBranch: (name: string) => Promise<GitResult<void>>
+  /** Check out a specific commit, detaching HEAD onto it. */
+  checkoutCommit: (hash: string) => Promise<GitResult<void>>
   /** Create a local branch tracking a remote-tracking branch, and switch to it. */
   checkoutRemote: (remoteRef: string) => Promise<GitResult<void>>
   /**
@@ -182,6 +187,12 @@ export interface GitApi {
   mergePR: (branch: string) => Promise<GitResult<void>>
   /** Open the repo folder in the user's code editor (VS Code, …). */
   openInEditor: () => Promise<GitResult<void>>
+  /** Open a repo-relative file in the OS default app. */
+  openFile: (path: string) => Promise<GitResult<void>>
+  /** Open a repo-relative file in the user's code editor (VS Code, …). */
+  openFileInEditor: (path: string) => Promise<GitResult<void>>
+  /** Reveal a repo-relative file in the OS file manager (Finder/Explorer). */
+  revealFile: (path: string) => Promise<GitResult<void>>
   /** Open a URL in the default browser. */
   openExternal: (url: string) => Promise<GitResult<void>>
 }
@@ -204,4 +215,16 @@ export interface TermApi {
 export interface MenuApi {
   /** Fired when a menu item / accelerator invokes a command by id. */
   onCommand: (cb: (id: string) => void) => () => void
+}
+
+/** Window controls for the custom (frameless) title bar. */
+export interface WindowApi {
+  minimize: () => void
+  /** Toggle between maximized and restored. */
+  maximizeToggle: () => void
+  close: () => void
+  /** Current maximized state (for the initial button icon). */
+  isMaximized: () => Promise<boolean>
+  /** Subscribe to maximize/restore changes. Returns an unsubscribe function. */
+  onMaximizeChange: (cb: (maximized: boolean) => void) => () => void
 }

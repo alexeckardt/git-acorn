@@ -1,6 +1,6 @@
 {
   "name": "git-acorn",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A small, streamlined git GUI for solo developers",
   "main": "./out/main/index.js",
   "author": "Alex Eckardt",

@@ -324,7 +324,9 @@ code {
   padding: 40px;
 }
 .welcome-acorn {
-  font-size: 56px;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
 }
 .welcome-card h1 {
   margin: 12px 0 4px;

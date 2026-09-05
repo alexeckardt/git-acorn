@@ -501,7 +501,7 @@ export default function App() {
         />
         <div className="welcome">
           <div className="welcome-card">
-            <div className="welcome-acorn">🌰</div>
+            <img className="welcome-acorn" src="/icon.png" alt="" />
             <h1>git-acorn</h1>
             <p>A small, streamlined git client for solo projects.</p>
             <button className="tb-btn primary big" onClick={openRepoFromDialog}>

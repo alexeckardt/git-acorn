@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { DiffSource, GitApi, MenuApi, TermApi } from '../shared/types'
+import type { DiffSource, GitApi, MenuApi, TermApi, WindowApi } from '../shared/types'
 
 const api: GitApi = {
   openRepoDialog: () => ipcRenderer.invoke('repo:open'),
@@ -19,9 +19,10 @@ const api: GitApi = {
   hideLocally: (paths) => ipcRenderer.invoke('git:hideLocally', paths),
   getCommitColors: () => ipcRenderer.invoke('git:getCommitColors'),
   setCommitColor: (hash, color) => ipcRenderer.invoke('git:setCommitColor', hash, color),
-  createBranch: (name) => ipcRenderer.invoke('git:createBranch', name),
+  createBranch: (name, startPoint) => ipcRenderer.invoke('git:createBranch', name, startPoint),
   branches: () => ipcRenderer.invoke('git:branches'),
   switchBranch: (name) => ipcRenderer.invoke('git:switchBranch', name),
+  checkoutCommit: (hash) => ipcRenderer.invoke('git:checkoutCommit', hash),
   checkoutRemote: (remoteRef) => ipcRenderer.invoke('git:checkoutRemote', remoteRef),
   updateLocalToRemote: (remoteRef, stash) =>
     ipcRenderer.invoke('git:updateLocalToRemote', remoteRef, stash),
@@ -41,6 +42,9 @@ const api: GitApi = {
   prStatus: (branch) => ipcRenderer.invoke('git:prStatus', branch),
   mergePR: (branch) => ipcRenderer.invoke('git:mergePR', branch),
   openInEditor: () => ipcRenderer.invoke('git:openInEditor'),
+  openFile: (path) => ipcRenderer.invoke('git:openFile', path),
+  openFileInEditor: (path) => ipcRenderer.invoke('git:openFileInEditor', path),
+  revealFile: (path) => ipcRenderer.invoke('git:revealFile', path),
   openExternal: (url) => ipcRenderer.invoke('git:openExternal', url)
 }
 
@@ -73,3 +77,17 @@ const menuApi: MenuApi = {
 }
 
 contextBridge.exposeInMainWorld('menuApi', menuApi)
+
+const windowApi: WindowApi = {
+  minimize: () => ipcRenderer.send('window:minimize'),
+  maximizeToggle: () => ipcRenderer.send('window:maximizeToggle'),
+  close: () => ipcRenderer.send('window:close'),
+  isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+  onMaximizeChange: (cb) => {
+    const l = (_e: unknown, maximized: boolean) => cb(maximized)
+    ipcRenderer.on('window:maximized', l)
+    return () => ipcRenderer.removeListener('window:maximized', l)
+  }
+}
+
+contextBridge.exposeInMainWorld('windowApi', windowApi)

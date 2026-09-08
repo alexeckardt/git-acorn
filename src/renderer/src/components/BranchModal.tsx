@@ -8,11 +8,17 @@ interface Props {
   onClose: () => void
   /** created=true when a new branch was made (vs switching to an existing one). */
   onDone: (created?: boolean) => void
+  /**
+   * When set, the modal is in "create branch at a commit" mode: the new branch
+   * is rooted at this commit hash, and switching to existing branches is hidden.
+   */
+  startPoint?: string
 }
 
 type Option = { type: 'switch' | 'create'; name: string }
 
-export default function BranchModal({ open, onClose, onDone }: Props) {
+export default function BranchModal({ open, onClose, onDone, startPoint }: Props) {
+  const atCommit = !!startPoint
   const [all, setAll] = useState<string[]>([])
   const [current, setCurrent] = useState('')
   const [prefix, setPrefix] = useState('')
@@ -50,7 +56,10 @@ export default function BranchModal({ open, onClose, onDone }: Props) {
 
   const search = rest.trim().toLowerCase()
   // Search ignores the prefix: match the typed remainder against the full name.
-  const filtered = all.filter((b) => b !== current && b.toLowerCase().includes(search))
+  // In "create at commit" mode there's no switching, so no existing branches show.
+  const filtered = atCommit
+    ? []
+    : all.filter((b) => b !== current && b.toLowerCase().includes(search))
   const exactExists = all.includes(fullName)
   const showCreate = fullName !== '' && !exactExists
   const options: Option[] = [
@@ -66,7 +75,7 @@ export default function BranchModal({ open, onClose, onDone }: Props) {
     setError(null)
     const res =
       opt.type === 'create'
-        ? await window.gitApi.createBranch(opt.name)
+        ? await window.gitApi.createBranch(opt.name, startPoint)
         : await window.gitApi.switchBranch(opt.name)
     setBusy(false)
     if (res.ok) {
@@ -87,6 +96,10 @@ export default function BranchModal({ open, onClose, onDone }: Props) {
 
     if (highlight >= 0 && options[highlight]) {
       act(options[highlight])
+    } else if (atCommit) {
+      // Create-at-commit only ever creates; a name that already exists is an error.
+      if (exactExists) setError(`A branch named "${fullName}" already exists`)
+      else act({ type: 'create', name: fullName })
     } else if (fullName) {
       // A default prefix shouldn't hijack switching: if the typed name matches
       // an existing branch (prefixed or not), switch to it instead of creating.
@@ -130,7 +143,9 @@ export default function BranchModal({ open, onClose, onDone }: Props) {
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="branch-modal" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="small-modal-title">Switch or create branch</div>
+        <div className="small-modal-title">
+          {atCommit ? `Create branch at ${startPoint!.slice(0, 7)}` : 'Switch or create branch'}
+        </div>
 
         <div className="branch-input-row">
           <button
@@ -175,7 +190,11 @@ export default function BranchModal({ open, onClose, onDone }: Props) {
 
         <div className="branch-options">
           {options.length === 0 && (
-            <div className="empty-hint">Type a name to create a branch</div>
+            <div className="empty-hint">
+              {atCommit
+                ? `Type a name for the branch at ${startPoint!.slice(0, 7)}`
+                : 'Type a name to create a branch'}
+            </div>
           )}
           {options.map((o, i) => {
             const { prefix: op, rest: orest } = splitPrefix(o.name)
@@ -199,9 +218,13 @@ export default function BranchModal({ open, onClose, onDone }: Props) {
         <div className="branch-hint">
           {fullName
             ? exactExists
-              ? `↵ Switch to ${fullName}`
+              ? atCommit
+                ? `"${fullName}" already exists`
+                : `↵ Switch to ${fullName}`
               : `↵ Create ${fullName}`
-            : `On ${current || '(detached)'}`}
+            : atCommit
+              ? `At commit ${startPoint!.slice(0, 7)}`
+              : `On ${current || '(detached)'}`}
           {busy && ' …'}
         </div>
       </div>

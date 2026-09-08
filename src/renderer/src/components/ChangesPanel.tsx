@@ -1,9 +1,17 @@
 import { useState } from "react";
 import type { ChangedFile, RepoStatus } from "../../../shared/types";
+import { isMac } from "../lib/commands";
 import CommitBox from "./CommitBox";
 import ContextMenu, { MenuItem } from "./ContextMenu";
 import FileRow from "./FileRow";
 import FileTree from "./FileTree";
+
+// The OS file-manager's name, for the "reveal" label.
+const REVEAL_LABEL = isMac
+  ? "Reveal in Finder"
+  : /win/i.test(navigator.userAgent)
+    ? "Show in Explorer"
+    : "Show in file manager";
 
 interface Props {
   status: RepoStatus;
@@ -49,10 +57,36 @@ export default function ChangesPanel({
   /** The right-click menu mirrors the row's quick actions, plus ignore options. */
   function buildMenu(f: ChangedFile): MenuItem[] {
     const items: MenuItem[] = [];
+    // "Open elsewhere" — only for files that still exist on disk (a deleted
+    // file has nothing to open or reveal).
+    if (f.status !== "deleted") {
+      items.push({
+        label: "Open in editor",
+        onClick: () => run(window.gitApi.openFileInEditor(f.path)),
+      });
+      items.push({
+        label: "Open in default app",
+        onClick: () => run(window.gitApi.openFile(f.path)),
+      });
+      items.push({
+        label: REVEAL_LABEL,
+        onClick: () => run(window.gitApi.revealFile(f.path)),
+      });
+    }
+    // Divide the "open" group from the git actions (only when that group exists).
+    const firstGitDivider = f.status !== "deleted";
     if (f.staged) {
-      items.push({ label: "Unstage", onClick: () => run(window.gitApi.unstage([f.path])) });
+      items.push({
+        label: "Unstage",
+        divider: firstGitDivider,
+        onClick: () => run(window.gitApi.unstage([f.path])),
+      });
     } else {
-      items.push({ label: "Stage", onClick: () => run(window.gitApi.stage([f.path])) });
+      items.push({
+        label: "Stage",
+        divider: firstGitDivider,
+        onClick: () => run(window.gitApi.stage([f.path])),
+      });
       items.push({
         label: "Discard changes",
         danger: true,

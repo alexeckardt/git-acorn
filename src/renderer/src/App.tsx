@@ -43,6 +43,8 @@ export default function App() {
   const [graphHeight, setGraphHeight] = useState(360)
   const [terminalVisible, setTerminalVisible] = useState(false)
   const [newBranchOpen, setNewBranchOpen] = useState(false)
+  // When set, the branch modal creates a branch rooted at this commit hash.
+  const [branchStartPoint, setBranchStartPoint] = useState<string | null>(null)
   const [preferencesOpen, setPreferencesOpen] = useState(false)
   const [switchRepoOpen, setSwitchRepoOpen] = useState(false)
   const [switchError, setSwitchError] = useState<string | null>(null)
@@ -153,7 +155,7 @@ export default function App() {
     const unsubs = [
       registerCommand('open-repo', () => openSwitchRepo()),
       registerCommand('refresh', () => refresh(true)),
-      registerCommand('new-branch', () => setNewBranchOpen(true)),
+      registerCommand('new-branch', openNewBranch),
       registerCommand('toggle-terminal', () => setTerminalVisible((v) => !v)),
       registerCommand('preferences', () => setPreferencesOpen(true))
     ]
@@ -285,6 +287,37 @@ export default function App() {
     const res = await window.gitApi.switchBranch(name)
     if (res.ok) refresh()
     else alert(res.error)
+  }
+
+  async function checkoutCommit(hash: string) {
+    const short = hash.slice(0, 7)
+    if (
+      !confirm(
+        `Check out commit ${short}?\n\n` +
+          `This detaches HEAD onto the commit — you won't be on a branch. ` +
+          `Create a branch here first if you want to keep new work.`
+      )
+    )
+      return
+    const res = await window.gitApi.checkoutCommit(hash)
+    if (res.ok) refresh()
+    else alert(res.error)
+  }
+
+  function createBranchAt(hash: string) {
+    setBranchStartPoint(hash)
+    setNewBranchOpen(true)
+  }
+
+  // Plain "new branch" — off the current HEAD, so clear any lingering start point.
+  function openNewBranch() {
+    setBranchStartPoint(null)
+    setNewBranchOpen(true)
+  }
+
+  function closeBranchModal() {
+    setNewBranchOpen(false)
+    setBranchStartPoint(null)
   }
 
   async function checkoutRemoteBranch(remoteRef: string) {
@@ -495,7 +528,7 @@ export default function App() {
           refreshing={false}
           syncing={false}
           onSwitchRepo={openSwitchRepo}
-          onSwitchBranch={() => setNewBranchOpen(true)}
+          onSwitchBranch={openNewBranch}
           onRefresh={() => {}}
           onSync={() => {}}
         />
@@ -541,7 +574,7 @@ export default function App() {
         refreshing={refreshing}
         syncing={syncing}
         onSwitchRepo={openSwitchRepo}
-        onSwitchBranch={() => setNewBranchOpen(true)}
+        onSwitchBranch={openNewBranch}
         onRefresh={() => refresh(true)}
         onSync={doSync}
       />
@@ -588,6 +621,8 @@ export default function App() {
                 fileFilter={fileFilter}
                 onClearFilter={() => setFileFilter(null)}
                 onCheckoutBranch={checkoutBranch}
+                onCheckoutCommit={checkoutCommit}
+                onCreateBranchAt={createBranchAt}
                 onCheckoutRemote={checkoutRemoteBranch}
                 onUpdateLocalToRemote={updateLocalToRemote}
                 onCheckoutRemoteAndPull={checkoutRemoteAndPull}
@@ -618,8 +653,9 @@ export default function App() {
       />
       <BranchModal
         open={newBranchOpen}
-        onClose={() => setNewBranchOpen(false)}
+        onClose={closeBranchModal}
         onDone={refresh}
+        startPoint={branchStartPoint ?? undefined}
       />
       <PreferencesModal open={preferencesOpen} onClose={() => setPreferencesOpen(false)} />
       <SwitchRepoModal

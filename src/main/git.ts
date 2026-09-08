@@ -447,11 +447,26 @@ export async function commit(summary: string, description: string): Promise<void
   }
 }
 
-export async function createBranch(name: string): Promise<void> {
+export async function createBranch(name: string, startPoint?: string): Promise<void> {
   const trimmed = name.trim()
   if (!trimmed) throw new Error('Branch name is required')
   // `checkout -b` keeps the working tree, so uncommitted changes come along.
-  await git(['checkout', '-b', trimmed])
+  // An optional start point (e.g. a commit hash) roots the branch there instead
+  // of at the current HEAD.
+  const args = ['checkout', '-b', trimmed]
+  const start = startPoint?.trim()
+  if (start) args.push(start)
+  await git(args)
+}
+
+/**
+ * Check out a specific commit, detaching HEAD onto it. Uncommitted changes are
+ * carried along (git refuses rather than discarding if they would conflict).
+ */
+export async function checkoutCommit(hash: string): Promise<void> {
+  const trimmed = hash.trim()
+  if (!trimmed) throw new Error('Commit hash is required')
+  await git(['checkout', trimmed])
 }
 
 export async function branches(): Promise<{ current: string; all: string[] }> {

@@ -22,6 +22,8 @@ interface Props {
   fileFilter: string | null
   onClearFilter: () => void
   onCheckoutBranch: (name: string) => void
+  onCheckoutCommit: (hash: string) => void
+  onCreateBranchAt: (hash: string) => void
   onCheckoutRemote: (remoteRef: string) => void
   onUpdateLocalToRemote: (remoteRef: string) => void
   onCheckoutRemoteAndPull: (remoteRef: string) => void
@@ -43,6 +45,8 @@ export default function CommitGraph({
   fileFilter,
   onClearFilter,
   onCheckoutBranch,
+  onCheckoutCommit,
+  onCreateBranchAt,
   onCheckoutRemote,
   onUpdateLocalToRemote,
   onCheckoutRemoteAndPull,
@@ -493,8 +497,11 @@ export default function CommitGraph({
             onPick: (idx) => setCommitColor(commitMenu.hash, idx)
           }}
           items={[
+            { label: 'Checkout commit', onClick: () => onCheckoutCommit(commitMenu.hash) },
+            { label: 'Create branch here…', onClick: () => onCreateBranchAt(commitMenu.hash) },
             {
               label: 'Copy commit hash',
+              divider: true,
               onClick: () => navigator.clipboard.writeText(commitMenu.hash)
             }
           ]}

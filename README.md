@@ -50,20 +50,6 @@ And if you ever need any more advanced features, you can easily open a terminal 
 - **A little friend** — keep an eye out for the critter that skitters across your
   graph. Click it to shake loose the acorns it's been hoarding. 🐿️
 
-## Screenshots
-
-<div align="center">
-
-| Commit graph & history | Side-by-side diff |
-| :---: | :---: |
-| <img src="docs/screenshots/commit-graph.png" alt="Always-on commit graph with branch chips" width="420" /> | <img src="docs/screenshots/diff.png" alt="Side-by-side diff viewer" width="420" /> |
-
-| Branch & commit menu | Built-in terminal |
-| :---: | :---: |
-| <img src="docs/screenshots/branches.png" alt="Right-click branch and commit actions" width="420" /> | <img src="docs/screenshots/terminal.png" alt="Built-in terminal" width="420" /> |
-
-</div>
-
 ## Install
 
 Grab the latest build for your platform from the

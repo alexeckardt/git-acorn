@@ -7,10 +7,10 @@ import ContextMenu, { MenuItem } from './ContextMenu'
 import BranchLabel from './BranchLabel'
 import Icon from './Icon'
 
-const ROW_H = 46
-const COL_W = 20
-const NODE_R = 5
-const LEFT_PAD = 16
+const ROW_H = 34
+const COL_W = 18
+const NODE_R = 4
+const LEFT_PAD = 14
 
 interface Props {
   commits: Commit[]

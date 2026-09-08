@@ -31,7 +31,20 @@ function git(args: string[], cwd?: string, opts?: { allowCode1?: boolean }): Pro
     execFile(
       'git',
       args,
-      { cwd: dir, maxBuffer: 64 * 1024 * 1024, windowsHide: true },
+      {
+        cwd: dir,
+        maxBuffer: 64 * 1024 * 1024,
+        windowsHide: true,
+        env: {
+          ...process.env,
+          // We run git without a controlling terminal, so any interactive
+          // prompt (HTTPS username/password, SSH host-key confirmation) would
+          // block forever. Make git fail fast with an error we can surface
+          // instead of hanging — e.g. a push with no cached credentials.
+          GIT_TERMINAL_PROMPT: '0',
+          GIT_SSH_COMMAND: process.env.GIT_SSH_COMMAND ?? 'ssh -oBatchMode=yes'
+        }
+      },
       (err, stdout, stderr) => {
         if (err) {
           // Diff commands (notably `--no-index`) exit 1 when differences exist;
@@ -486,7 +499,23 @@ export async function createTag(name: string, hash?: string, message?: string): 
 export async function pushTag(name: string): Promise<void> {
   const t = name.trim()
   if (!t) throw new Error('Tag name is required')
-  await git(['push', 'origin', t])
+  try {
+    await git(['push', 'origin', t])
+  } catch (e) {
+    const msg = (e as Error).message
+    // With interactive prompts disabled, a missing/invalid credential surfaces
+    // as one of these — translate it into something actionable.
+    if (
+      /terminal prompts disabled|could not read Username|Authentication failed|Permission denied|Host key verification failed/i.test(
+        msg
+      )
+    ) {
+      throw new Error(
+        `couldn't authenticate with origin — set up your git credentials (e.g. \`gh auth login\`), or push from the terminal: git push origin ${t}`
+      )
+    }
+    throw e
+  }
 }
 
 export async function branches(): Promise<{ current: string; all: string[] }> {

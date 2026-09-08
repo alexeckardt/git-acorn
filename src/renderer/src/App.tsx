@@ -15,9 +15,11 @@ import CommitGraph from './components/CommitGraph'
 import DiffView, { DiffMode } from './components/DiffView'
 import TerminalModal from './components/TerminalModal'
 import BranchModal from './components/BranchModal'
+import TagModal from './components/TagModal'
 import PreferencesModal from './components/PreferencesModal'
 import SwitchRepoModal from './components/SwitchRepoModal'
 import CritterOverlay from './components/CritterOverlay'
+import UpdateBanner from './components/UpdateBanner'
 import { installShortcuts, registerCommand, runCommand } from './lib/commands'
 import { addRecentRepo, getRecentRepos, removeRecentRepo } from './lib/recentRepos'
 import { getPrefs } from './lib/prefs'
@@ -45,6 +47,8 @@ export default function App() {
   const [newBranchOpen, setNewBranchOpen] = useState(false)
   // When set, the branch modal creates a branch rooted at this commit hash.
   const [branchStartPoint, setBranchStartPoint] = useState<string | null>(null)
+  // When set, the tag modal creates a tag at this commit hash.
+  const [tagHash, setTagHash] = useState<string | null>(null)
   const [preferencesOpen, setPreferencesOpen] = useState(false)
   const [switchRepoOpen, setSwitchRepoOpen] = useState(false)
   const [switchError, setSwitchError] = useState<string | null>(null)
@@ -307,6 +311,10 @@ export default function App() {
   function createBranchAt(hash: string) {
     setBranchStartPoint(hash)
     setNewBranchOpen(true)
+  }
+
+  function createTagAt(hash: string) {
+    setTagHash(hash)
   }
 
   // Plain "new branch" — off the current HEAD, so clear any lingering start point.
@@ -623,6 +631,7 @@ export default function App() {
                 onCheckoutBranch={checkoutBranch}
                 onCheckoutCommit={checkoutCommit}
                 onCreateBranchAt={createBranchAt}
+                onCreateTag={createTagAt}
                 onCheckoutRemote={checkoutRemoteBranch}
                 onUpdateLocalToRemote={updateLocalToRemote}
                 onCheckoutRemoteAndPull={checkoutRemoteAndPull}
@@ -657,6 +666,14 @@ export default function App() {
         onDone={refresh}
         startPoint={branchStartPoint ?? undefined}
       />
+      <TagModal
+        hash={tagHash}
+        onClose={() => setTagHash(null)}
+        onDone={(pushed, name) => {
+          showToast(pushed ? `Tagged ${name} and pushed to origin.` : `Created tag ${name}.`)
+          refresh()
+        }}
+      />
       <PreferencesModal open={preferencesOpen} onClose={() => setPreferencesOpen(false)} />
       <SwitchRepoModal
         open={switchRepoOpen}
@@ -672,6 +689,8 @@ export default function App() {
           {toast}
         </div>
       )}
+
+      <UpdateBanner />
 
       {renameTarget !== null && (
         <div

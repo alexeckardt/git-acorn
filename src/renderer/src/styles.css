@@ -1838,6 +1838,91 @@ code {
   }
 }
 
+/* Auto-update announcement banner (bottom-right). */
+.update-banner {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 3000;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 300px;
+  background: var(--bg-3);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  animation: toastIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@media (max-width: 640px) {
+  .update-banner {
+    left: 20px;
+    width: auto;
+  }
+}
+
+.update-acorn {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.update-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.update-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.update-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.update-btn {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.update-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.update-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #14121a;
+  font-weight: 600;
+}
+.update-btn.primary:hover {
+  background: var(--accent-2);
+}
+
+.update-progress {
+  margin-top: 10px;
+  height: 6px;
+  border-radius: 4px;
+  background: var(--bg-1);
+  overflow: hidden;
+}
+.update-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+
 .filter-banner {
   display: flex;
   align-items: center;
@@ -1990,9 +2075,31 @@ code {
   border: 1px solid rgba(199, 146, 234, 0.35);
 }
 .ref-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   background: rgba(216, 190, 122, 0.15);
   color: var(--amber);
   border: 1px solid rgba(216, 190, 122, 0.35);
+}
+.tag-icon {
+  flex: 0 0 auto;
+  margin-top: -1px;
+}
+
+/* "Push to origin" checkbox in the create-tag modal. */
+.tag-push-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+.tag-push-row input {
+  cursor: pointer;
 }
 
 /* Branch/remote pills take the colour of their lane in the graph (via --chip),

@@ -138,6 +138,10 @@ export interface GitApi {
   switchBranch: (name: string) => Promise<GitResult<void>>
   /** Check out a specific commit, detaching HEAD onto it. */
   checkoutCommit: (hash: string) => Promise<GitResult<void>>
+  /** Tag a commit (defaults to HEAD); a message makes it an annotated tag. */
+  createTag: (name: string, hash?: string, message?: string) => Promise<GitResult<void>>
+  /** Push a single tag to origin (e.g. to trigger a release). */
+  pushTag: (name: string) => Promise<GitResult<void>>
   /** Create a local branch tracking a remote-tracking branch, and switch to it. */
   checkoutRemote: (remoteRef: string) => Promise<GitResult<void>>
   /**
@@ -215,6 +219,27 @@ export interface TermApi {
 export interface MenuApi {
   /** Fired when a menu item / accelerator invokes a command by id. */
   onCommand: (cb: (id: string) => void) => () => void
+}
+
+/** Auto-update lifecycle, pushed from main to the renderer's update banner. */
+export type UpdateStatus =
+  | { state: 'checking' }
+  | { state: 'available'; version: string }
+  | { state: 'none' }
+  | { state: 'downloading'; percent: number }
+  | { state: 'ready'; version: string }
+  | { state: 'error'; message: string }
+
+/** Bridge for the in-app auto-updater. */
+export interface UpdateApi {
+  /** Re-check the releases feed for a newer version. */
+  check: () => void
+  /** Download an available update (progress arrives via onStatus). */
+  download: () => void
+  /** Quit and install a downloaded update. */
+  install: () => void
+  /** Subscribe to update lifecycle changes. Returns an unsubscribe function. */
+  onStatus: (cb: (status: UpdateStatus) => void) => () => void
 }
 
 /** Window controls for the custom (frameless) title bar. */

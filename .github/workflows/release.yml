@@ -1,0 +1,47 @@
+name: Release
+
+# Cuts a release when a version tag is pushed (e.g. `v0.2.0`). Because Electron
+# apps can only be built on their target OS, this fans out across macOS, Windows,
+# and Linux runners; each builds its installers and publishes them to a single
+# GitHub Release for the tag. Once that release is published, running copies of
+# the app auto-update to it.
+#
+#   npm version patch      # bump + commit + create the tag
+#   git push --follow-tags # push it → this workflow runs
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+# electron-builder needs write access to create the release and upload assets.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      # Don't cancel the other OS builds if one fails; a partial release is
+      # easier to finish than to redo from scratch.
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build and publish
+        run: npm run release
+        env:
+          # Built-in token — no PAT needed to publish to this repo's releases.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No Apple certificate in CI, so don't attempt macOS code signing
+          # (the build stays unsigned; Windows/Linux are unaffected).
+          CSC_IDENTITY_AUTO_DISCOVERY: false

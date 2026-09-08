@@ -11,6 +11,7 @@ import { execFile } from 'node:child_process'
 import { join } from 'node:path'
 import * as g from './git'
 import * as term from './terminal'
+import * as updater from './updater'
 import type { DiffSource, GitResult } from '../shared/types'
 
 const IS_MAC = process.platform === 'darwin'
@@ -66,6 +67,9 @@ function createWindow(): void {
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  // Start checking GitHub Releases for a newer version.
+  updater.initAutoUpdate(win)
 }
 
 /** Resolve a repo-relative path to an absolute one, erroring if no repo is open. */
@@ -262,6 +266,10 @@ function registerIpc(): void {
   ipcMain.handle('git:branches', () => wrap(() => g.branches()))
   ipcMain.handle('git:switchBranch', (_e, name: string) => wrap(() => g.switchBranch(name)))
   ipcMain.handle('git:checkoutCommit', (_e, hash: string) => wrap(() => g.checkoutCommit(hash)))
+  ipcMain.handle('git:createTag', (_e, name: string, hash?: string, message?: string) =>
+    wrap(() => g.createTag(name, hash, message))
+  )
+  ipcMain.handle('git:pushTag', (_e, name: string) => wrap(() => g.pushTag(name)))
   ipcMain.handle('git:checkoutRemote', (_e, remoteRef: string) =>
     wrap(() => g.checkoutRemote(remoteRef))
   )
@@ -300,6 +308,11 @@ function registerIpc(): void {
   ipcMain.handle('window:isMaximized', (e) =>
     BrowserWindow.fromWebContents(e.sender)?.isMaximized() ?? false
   )
+
+  // Auto-update controls for the in-app update banner.
+  ipcMain.on('update:check', () => updater.checkForUpdates())
+  ipcMain.on('update:download', () => updater.downloadUpdate())
+  ipcMain.on('update:install', () => updater.quitAndInstall())
 
   ipcMain.handle('git:openInEditor', () => wrap(() => openInEditor()))
   ipcMain.handle('git:openFile', (_e, path: string) => wrap(() => openFile(path)))

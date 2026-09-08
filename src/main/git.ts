@@ -469,6 +469,26 @@ export async function checkoutCommit(hash: string): Promise<void> {
   await git(['checkout', trimmed])
 }
 
+/**
+ * Tag a commit (defaults to HEAD). A non-empty `message` makes it an annotated
+ * tag, which is what you want for a release; otherwise it's lightweight.
+ */
+export async function createTag(name: string, hash?: string, message?: string): Promise<void> {
+  const t = name.trim()
+  if (!t) throw new Error('Tag name is required')
+  const target = hash?.trim() || 'HEAD'
+  const msg = message?.trim()
+  if (msg) await git(['tag', '-a', t, '-m', msg, target])
+  else await git(['tag', t, target])
+}
+
+/** Push a single tag to origin — e.g. to trigger a release from that tag. */
+export async function pushTag(name: string): Promise<void> {
+  const t = name.trim()
+  if (!t) throw new Error('Tag name is required')
+  await git(['push', 'origin', t])
+}
+
 export async function branches(): Promise<{ current: string; all: string[] }> {
   const out = await git(['branch', '--format=%(refname:short)'])
   const all = out

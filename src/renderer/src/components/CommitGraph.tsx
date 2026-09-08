@@ -24,6 +24,7 @@ interface Props {
   onCheckoutBranch: (name: string) => void
   onCheckoutCommit: (hash: string) => void
   onCreateBranchAt: (hash: string) => void
+  onCreateTag: (hash: string) => void
   onCheckoutRemote: (remoteRef: string) => void
   onUpdateLocalToRemote: (remoteRef: string) => void
   onCheckoutRemoteAndPull: (remoteRef: string) => void
@@ -47,6 +48,7 @@ export default function CommitGraph({
   onCheckoutBranch,
   onCheckoutCommit,
   onCreateBranchAt,
+  onCreateTag,
   onCheckoutRemote,
   onUpdateLocalToRemote,
   onCheckoutRemoteAndPull,
@@ -386,10 +388,12 @@ export default function CommitGraph({
               >
                 <div className="commit-line">
                   {(() => {
-                    // Order the pills: HEAD → open PR → branch names → closed PR.
+                    // Order the pills: tags → HEAD → open PR → branch names → closed PR.
+                    // Tags lead so a released commit shows its version first.
+                    const tags = c.refs.filter((r) => r.type === 'tag')
                     const heads = c.refs.filter((r) => r.type === 'head')
                     const named = c.refs.filter(
-                      (r) => r.type === 'branch' || r.type === 'remote' || r.type === 'tag'
+                      (r) => r.type === 'branch' || r.type === 'remote'
                     )
                     const commitPRs: PullRequest[] = []
                     const seen = new Set<number>()
@@ -423,6 +427,16 @@ export default function CommitGraph({
 
                     return (
                       <>
+                        {tags.map((r) => (
+                          <span
+                            key={`tag-${r.name}`}
+                            className="ref-chip ref-tag"
+                            title={`Tag ${r.name}`}
+                          >
+                            <Icon name="tag" size={11} className="tag-icon" />
+                            {r.name}
+                          </span>
+                        ))}
                         {heads.map((r) => (
                           <span key={`head-${r.name}`} className="ref-chip ref-head">
                             {r.name}
@@ -499,6 +513,7 @@ export default function CommitGraph({
           items={[
             { label: 'Checkout commit', onClick: () => onCheckoutCommit(commitMenu.hash) },
             { label: 'Create branch here…', onClick: () => onCreateBranchAt(commitMenu.hash) },
+            { label: 'Create tag…', onClick: () => onCreateTag(commitMenu.hash) },
             {
               label: 'Copy commit hash',
               divider: true,

@@ -10,7 +10,8 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "package": "electron-vite build && electron-builder"
+    "package": "electron-vite build && electron-builder",
+    "release": "electron-vite build && electron-builder --publish always"
   },
   "build": {
     "appId": "com.alexeckardt.gitleaf",
@@ -19,6 +20,13 @@
       "buildResources": "build",
       "output": "dist"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "alexeckardt",
+        "repo": "git-leaf"
+      }
+    ],
     "files": [
       "out/**/*",
       "package.json",
@@ -54,7 +62,8 @@
     }
   },
   "dependencies": {
-    "diff2html": "^3.4.51"
+    "diff2html": "^3.4.51",
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

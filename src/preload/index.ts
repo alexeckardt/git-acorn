@@ -1,5 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { DiffSource, GitApi, MenuApi, TermApi, WindowApi } from '../shared/types'
+import type {
+  DiffSource,
+  GitApi,
+  MenuApi,
+  TermApi,
+  UpdateApi,
+  UpdateStatus,
+  WindowApi
+} from '../shared/types'
 
 const api: GitApi = {
   openRepoDialog: () => ipcRenderer.invoke('repo:open'),
@@ -23,6 +31,8 @@ const api: GitApi = {
   branches: () => ipcRenderer.invoke('git:branches'),
   switchBranch: (name) => ipcRenderer.invoke('git:switchBranch', name),
   checkoutCommit: (hash) => ipcRenderer.invoke('git:checkoutCommit', hash),
+  createTag: (name, hash, message) => ipcRenderer.invoke('git:createTag', name, hash, message),
+  pushTag: (name) => ipcRenderer.invoke('git:pushTag', name),
   checkoutRemote: (remoteRef) => ipcRenderer.invoke('git:checkoutRemote', remoteRef),
   updateLocalToRemote: (remoteRef, stash) =>
     ipcRenderer.invoke('git:updateLocalToRemote', remoteRef, stash),
@@ -91,3 +101,16 @@ const windowApi: WindowApi = {
 }
 
 contextBridge.exposeInMainWorld('windowApi', windowApi)
+
+const updateApi: UpdateApi = {
+  check: () => ipcRenderer.send('update:check'),
+  download: () => ipcRenderer.send('update:download'),
+  install: () => ipcRenderer.send('update:install'),
+  onStatus: (cb) => {
+    const l = (_e: unknown, status: UpdateStatus) => cb(status)
+    ipcRenderer.on('update:status', l)
+    return () => ipcRenderer.removeListener('update:status', l)
+  }
+}
+
+contextBridge.exposeInMainWorld('updateApi', updateApi)

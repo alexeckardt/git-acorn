@@ -14,8 +14,8 @@
     "release": "electron-vite build && electron-builder --publish always"
   },
   "build": {
-    "appId": "com.alexeckardt.gitleaf",
-    "productName": "Git Leaf",
+    "appId": "com.alexeckardt.gitacorn",
+    "productName": "Git Acorn",
     "directories": {
       "buildResources": "build",
       "output": "dist"
@@ -24,7 +24,7 @@
       {
         "provider": "github",
         "owner": "alexeckardt",
-        "repo": "git-leaf"
+        "repo": "git-acorn"
       }
     ],
     "files": [

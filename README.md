@@ -53,13 +53,13 @@ And if you ever need any more advanced features, you can easily open a terminal 
 ## Install
 
 Grab the latest build for your platform from the
-[**Releases**](https://github.com/alexeckardt/git-leaf/releases) page:
+[**Releases**](https://github.com/alexeckardt/git-acorn/releases) page:
 
 | Platform | File |
 | --- | --- |
-| macOS | `Git-Leaf-<version>-arm64.dmg` |
-| Windows | `Git-Leaf-Setup-<version>.exe` |
-| Linux | `Git-Leaf-<version>.AppImage` |
+| macOS | `Git-Acorn-<version>-arm64.dmg` |
+| Windows | `Git-Acorn-Setup-<version>.exe` |
+| Linux | `Git-Acorn-<version>.AppImage` |
 
 > [!NOTE]
 > The app isn't code-signed yet, so the first launch shows a warning.

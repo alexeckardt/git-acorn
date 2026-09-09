@@ -6,7 +6,7 @@ release uploads the installers plus an update manifest (`latest.yml` /
 notices the newer version, and prompts the user to download and restart.
 
 The publish target lives in `package.json` under `build.publish` (the public
-`alexeckardt/git-leaf` repo).
+`alexeckardt/git-acorn` repo).
 
 ## One-time setup
 

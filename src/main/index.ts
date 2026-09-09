@@ -309,6 +309,8 @@ function registerIpc(): void {
     BrowserWindow.fromWebContents(e.sender)?.isMaximized() ?? false
   )
 
+  ipcMain.handle('app:version', () => app.getVersion())
+
   // Auto-update controls for the in-app update banner.
   ipcMain.on('update:check', () => updater.checkForUpdates())
   ipcMain.on('update:download', () => updater.downloadUpdate())

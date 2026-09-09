@@ -189,6 +189,8 @@ export interface GitApi {
   prStatus: (branch: string) => Promise<GitResult<PRMergeStatus>>
   /** Merge a branch's PR remotely via gh (a merge commit). */
   mergePR: (branch: string) => Promise<GitResult<void>>
+  /** The application version (from package.json / app bundle). */
+  appVersion: () => Promise<string>
   /** Open the repo folder in the user's code editor (VS Code, …). */
   openInEditor: () => Promise<GitResult<void>>
   /** Open a repo-relative file in the OS default app. */

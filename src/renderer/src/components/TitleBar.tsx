@@ -13,6 +13,7 @@ interface Props {
   onSwitchBranch: () => void
   onRefresh: () => void
   onSync: () => void
+  onAbout: () => void
 }
 
 export default function TitleBar({
@@ -23,7 +24,8 @@ export default function TitleBar({
   onSwitchRepo,
   onSwitchBranch,
   onRefresh,
-  onSync
+  onSync,
+  onAbout
 }: Props) {
   const acorns = useAcorns()
   const branchShortcut = `${isMac ? '⌘' : 'Ctrl+'}B`
@@ -34,7 +36,9 @@ export default function TitleBar({
   return (
     <div className="titlebar">
       <div className="titlebar-left">
-        <span className="brand">🌰 git-acorn</span>
+        <button className="brand" onClick={onAbout} title="About git-acorn">
+          🌰 git-acorn
+        </button>
         {repo && <span className="repo-name">{repo.name}</span>}
         <span
           className="acorn-tally"

@@ -20,6 +20,7 @@ import PreferencesModal from './components/PreferencesModal'
 import SwitchRepoModal from './components/SwitchRepoModal'
 import CritterOverlay from './components/CritterOverlay'
 import UpdateBanner from './components/UpdateBanner'
+import AboutModal from './components/AboutModal'
 import { installShortcuts, registerCommand, runCommand } from './lib/commands'
 import { addRecentRepo, getRecentRepos, removeRecentRepo } from './lib/recentRepos'
 import { getPrefs } from './lib/prefs'
@@ -50,6 +51,7 @@ export default function App() {
   // When set, the tag modal creates a tag at this commit hash.
   const [tagHash, setTagHash] = useState<string | null>(null)
   const [preferencesOpen, setPreferencesOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const [switchRepoOpen, setSwitchRepoOpen] = useState(false)
   const [switchError, setSwitchError] = useState<string | null>(null)
 
@@ -539,6 +541,7 @@ export default function App() {
           onSwitchBranch={openNewBranch}
           onRefresh={() => {}}
           onSync={() => {}}
+          onAbout={() => setAboutOpen(true)}
         />
         <div className="welcome">
           <div className="welcome-card">
@@ -551,6 +554,7 @@ export default function App() {
           </div>
         </div>
         <PreferencesModal open={preferencesOpen} onClose={() => setPreferencesOpen(false)} />
+        <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
         <SwitchRepoModal
           open={switchRepoOpen}
           currentPath={null}
@@ -585,6 +589,7 @@ export default function App() {
         onSwitchBranch={openNewBranch}
         onRefresh={() => refresh(true)}
         onSync={doSync}
+        onAbout={() => setAboutOpen(true)}
       />
       <div className="body">
         <aside className="sidebar">
@@ -675,6 +680,7 @@ export default function App() {
         }}
       />
       <PreferencesModal open={preferencesOpen} onClose={() => setPreferencesOpen(false)} />
+      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
       <SwitchRepoModal
         open={switchRepoOpen}
         currentPath={repo.path}

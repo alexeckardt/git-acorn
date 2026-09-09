@@ -51,6 +51,7 @@ const api: GitApi = {
   listPRs: () => ipcRenderer.invoke('git:listPRs'),
   prStatus: (branch) => ipcRenderer.invoke('git:prStatus', branch),
   mergePR: (branch) => ipcRenderer.invoke('git:mergePR', branch),
+  appVersion: () => ipcRenderer.invoke('app:version'),
   openInEditor: () => ipcRenderer.invoke('git:openInEditor'),
   openFile: (path) => ipcRenderer.invoke('git:openFile', path),
   openFileInEditor: (path) => ipcRenderer.invoke('git:openFileInEditor', path),

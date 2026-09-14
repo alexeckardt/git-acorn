@@ -250,12 +250,17 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
                 ))}
               </div>
             )}
-            {description && (
-              <details className="wizard-desc-preview">
-                <summary>Description ({entries.length})</summary>
-                <pre>{description}</pre>
-              </details>
-            )}
+            <label className="wizard-label">Description</label>
+            <textarea
+              className="small-modal-input wizard-desc-edit"
+              placeholder="Describe the change in more detail (optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={Math.max(4, Math.min(12, description.split('\n').length + 1))}
+            />
+            <div className="muted small">
+              This body is committed under the summary — good for larger, on-topic commits.
+            </div>
             <div className="wizard-actions">
               <button className="tb-btn" onClick={() => setStep('describe')}>
                 Back

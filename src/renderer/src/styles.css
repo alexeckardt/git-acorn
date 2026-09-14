@@ -1491,6 +1491,13 @@ code {
   font-size: 12px;
   color: var(--text);
 }
+.wizard-desc-edit {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 80px;
+}
 .wizard-branch-row {
   display: flex;
   align-items: center;

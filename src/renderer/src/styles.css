@@ -480,6 +480,17 @@ code {
 .text-btn:hover {
   color: var(--accent-2);
 }
+.text-btn.danger {
+  color: var(--text-dim);
+}
+.text-btn.danger:hover {
+  color: var(--red);
+}
+.section-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
 .card-btn {
   background: var(--accent-2);
   border: none;

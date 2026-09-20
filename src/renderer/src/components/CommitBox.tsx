@@ -5,6 +5,7 @@ import CommitWizard from "./CommitWizard";
 import Icon from "./Icon";
 import { registerCommand } from "../lib/commands";
 import { usePrefs } from "../lib/prefs";
+import { applyDescribeIgnore } from "../lib/util";
 
 interface Props {
   status: RepoStatus;
@@ -23,7 +24,7 @@ export default function CommitBox({ status, onCommitted, onSync, syncing }: Prop
   const [writerMode, setWriterMode] = useState<"commit" | "manual">("manual");
   const [showWizard, setShowWizard] = useState(false);
 
-  const { autoDescribe, commitWorkflow } = usePrefs();
+  const { autoDescribe, commitWorkflow, describeIgnore, describeIgnoreMode } = usePrefs();
 
   const stagedCount = status.staged.length;
   const changeCount = stagedCount + status.unstaged.length;
@@ -33,8 +34,13 @@ export default function CommitBox({ status, onCommitted, onSync, syncing }: Prop
 
   const canCommitDesktop = summary.trim().length > 0 && hasChanges && !busy;
 
-  // The describer works on the staged files, or the working changes if none staged.
-  const describeFiles = stagedCount > 0 ? status.staged : status.unstaged;
+  // The describer works on the staged files, or the working changes if none staged,
+  // after applying the describe-ignore patterns (skip / move-to-bottom).
+  const describeFiles = applyDescribeIgnore(
+    stagedCount > 0 ? status.staged : status.unstaged,
+    describeIgnore,
+    describeIgnoreMode
+  );
 
   function openWriter(mode: "commit" | "manual") {
     if (describeFiles.length === 0) return;

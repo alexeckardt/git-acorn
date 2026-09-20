@@ -5,6 +5,7 @@ import { LANE_COLORS } from './graph'
 // with usePrefs() and re-render when any preference changes.
 
 export type CommitWorkflow = 'desktop' | 'wizard'
+export type DescribeIgnoreMode = 'skip' | 'last'
 
 export interface Preferences {
   /** Run the description writer when committing with an empty description. */
@@ -17,6 +18,10 @@ export interface Preferences {
   autoSwitchOnPRClose: boolean
   /** Palette used to colour graph lanes and branch pills (repeats past its length). */
   laneColors: string[]
+  /** Glob/extension patterns for files that don't need describing (e.g. "*.png"). */
+  describeIgnore: string[]
+  /** Whether ignored files are skipped entirely or just pushed to the bottom. */
+  describeIgnoreMode: DescribeIgnoreMode
 }
 
 const DEFAULTS: Preferences = {
@@ -24,7 +29,9 @@ const DEFAULTS: Preferences = {
   commitWorkflow: 'desktop',
   defaultBranchPrefix: '',
   autoSwitchOnPRClose: true,
-  laneColors: [...LANE_COLORS]
+  laneColors: [...LANE_COLORS],
+  describeIgnore: [],
+  describeIgnoreMode: 'skip'
 }
 
 const KEY = 'git-acorn.prefs'

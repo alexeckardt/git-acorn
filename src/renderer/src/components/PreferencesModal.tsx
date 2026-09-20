@@ -2,7 +2,14 @@ import { useEffect, useState } from 'react'
 import { setPref, usePrefs } from '../lib/prefs'
 import { PREFIXES } from '../lib/branchDisplay'
 import { LANE_COLORS } from '../lib/graph'
+import { isMac } from '../lib/commands'
 import Icon from './Icon'
+
+const FILE_MANAGER = isMac
+  ? 'Finder'
+  : /win/i.test(navigator.userAgent)
+    ? 'File Explorer'
+    : 'file manager'
 
 interface Props {
   open: boolean
@@ -12,6 +19,33 @@ interface Props {
 export default function PreferencesModal({ open, onClose }: Props) {
   const prefs = usePrefs()
   const [prefixMenu, setPrefixMenu] = useState(false)
+  const [ignoreDraft, setIgnoreDraft] = useState('')
+  const [folderError, setFolderError] = useState<string | null>(null)
+
+  async function openRepoFolder() {
+    setFolderError(null)
+    const res = await window.gitApi.openRepoFolder()
+    if (!res.ok) setFolderError(res.error ?? `Could not open the repository folder.`)
+  }
+
+  function addIgnore(raw: string) {
+    const parts = raw
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+    if (parts.length === 0) return
+    const next = [...prefs.describeIgnore]
+    for (const p of parts) if (!next.includes(p)) next.push(p)
+    setPref('describeIgnore', next)
+    setIgnoreDraft('')
+  }
+
+  function removeIgnore(pattern: string) {
+    setPref(
+      'describeIgnore',
+      prefs.describeIgnore.filter((p) => p !== pattern)
+    )
+  }
 
   useEffect(() => {
     if (!open) return
@@ -76,6 +110,76 @@ export default function PreferencesModal({ open, onClose }: Props) {
               />
               <span className="switch-slider" />
             </label>
+          </div>
+
+          <div className="prefs-row prefs-row-stack">
+            <div className="prefs-row-text">
+              <div className="prefs-row-label">Skip describing these files</div>
+              <div className="prefs-row-desc">
+                Files matching these patterns don't need a description in the writer or wizard.
+                Use an extension like <code>.png</code>, a glob like <code>*.lock</code>, or part of
+                a path like <code>dist/</code>.
+              </div>
+            </div>
+            <div className="ignore-field">
+              <div className="ignore-chips">
+                {prefs.describeIgnore.length === 0 && (
+                  <span className="muted small">No patterns yet.</span>
+                )}
+                {prefs.describeIgnore.map((p) => (
+                  <span key={p} className="ignore-chip">
+                    <code>{p}</code>
+                    <button
+                      className="ignore-chip-x"
+                      title={`Remove ${p}`}
+                      onClick={() => removeIgnore(p)}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="ignore-add">
+                <input
+                  className="small-modal-input"
+                  placeholder="e.g. .png, *.lock, dist/"
+                  value={ignoreDraft}
+                  onChange={(e) => setIgnoreDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addIgnore(ignoreDraft)
+                    }
+                  }}
+                />
+                <button
+                  className="tb-btn"
+                  disabled={!ignoreDraft.trim()}
+                  onClick={() => addIgnore(ignoreDraft)}
+                >
+                  Add
+                </button>
+              </div>
+              {prefs.describeIgnore.length > 0 && (
+                <div className="ignore-mode">
+                  <span className="muted small">When a file matches:</span>
+                  <div className="segmented prefs-segmented">
+                    <button
+                      className={prefs.describeIgnoreMode === 'skip' ? 'active' : ''}
+                      onClick={() => setPref('describeIgnoreMode', 'skip')}
+                    >
+                      Skip it
+                    </button>
+                    <button
+                      className={prefs.describeIgnoreMode === 'last' ? 'active' : ''}
+                      onClick={() => setPref('describeIgnoreMode', 'last')}
+                    >
+                      Describe last
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="prefs-row">
@@ -160,6 +264,19 @@ export default function PreferencesModal({ open, onClose }: Props) {
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="prefs-row">
+            <div className="prefs-row-text">
+              <div className="prefs-row-label">Repository folder</div>
+              <div className="prefs-row-desc">
+                Open the current repository in {FILE_MANAGER}.
+                {folderError && <span className="prefs-inline-error"> {folderError}</span>}
+              </div>
+            </div>
+            <button className="tb-btn" onClick={openRepoFolder}>
+              Show in {FILE_MANAGER}
+            </button>
           </div>
         </div>
       </div>

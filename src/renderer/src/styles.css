@@ -1220,6 +1220,73 @@ code {
   line-height: 1.4;
   margin-top: 3px;
 }
+.prefs-row-desc code {
+  background: var(--bg-3);
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-size: 11px;
+}
+
+/* Stacked preference row: control sits full-width below its label. */
+.prefs-row-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.ignore-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ignore-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+}
+.ignore-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 2px 4px 2px 7px;
+}
+.ignore-chip code {
+  font-size: 12px;
+}
+.ignore-chip-x {
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px;
+  border-radius: 4px;
+}
+.ignore-chip-x:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+.ignore-add {
+  display: flex;
+  gap: 8px;
+}
+.ignore-add .small-modal-input {
+  flex: 1;
+}
+.ignore-mode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.prefs-inline-error {
+  color: var(--danger, #e5534b);
+}
 
 /* Toggle switch */
 .switch {

@@ -193,6 +193,8 @@ export interface GitApi {
   appVersion: () => Promise<string>
   /** Open the repo folder in the user's code editor (VS Code, …). */
   openInEditor: () => Promise<GitResult<void>>
+  /** Open the repo folder in the OS file manager (Finder/Explorer/…). */
+  openRepoFolder: () => Promise<GitResult<void>>
   /** Open a repo-relative file in the OS default app. */
   openFile: (path: string) => Promise<GitResult<void>>
   /** Open a repo-relative file in the user's code editor (VS Code, …). */

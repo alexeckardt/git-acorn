@@ -53,6 +53,7 @@ const api: GitApi = {
   mergePR: (branch) => ipcRenderer.invoke('git:mergePR', branch),
   appVersion: () => ipcRenderer.invoke('app:version'),
   openInEditor: () => ipcRenderer.invoke('git:openInEditor'),
+  openRepoFolder: () => ipcRenderer.invoke('git:openRepoFolder'),
   openFile: (path) => ipcRenderer.invoke('git:openFile', path),
   openFileInEditor: (path) => ipcRenderer.invoke('git:openFileInEditor', path),
   revealFile: (path) => ipcRenderer.invoke('git:revealFile', path),

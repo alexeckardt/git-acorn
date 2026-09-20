@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangedFile } from '../../../shared/types'
 import DescriptionWriter, { DescEntry } from './DescriptionWriter'
 import BranchModal from './BranchModal'
+import { usePrefs } from '../lib/prefs'
+import { applyDescribeIgnore } from '../lib/util'
 
 interface Props {
   open: boolean
@@ -18,6 +20,7 @@ const STEP_LABELS: { key: Step; label: string }[] = [
 ]
 
 export default function CommitWizard({ open, onClose, onDone }: Props) {
+  const { describeIgnore, describeIgnoreMode } = usePrefs()
   const [step, setStep] = useState<Step>('prep')
   const [stagedFiles, setStagedFiles] = useState<ChangedFile[]>([])
   const [entries, setEntries] = useState<DescEntry[]>([])
@@ -80,7 +83,10 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
     }
     setStagedFiles(staged)
     await refreshBranchInfo()
-    setStep('describe')
+    // If every staged file is ignored under "skip", there's nothing to
+    // describe — jump straight to naming the commit.
+    const toDescribe = applyDescribeIgnore(staged, describeIgnore, describeIgnoreMode)
+    setStep(toDescribe.length > 0 ? 'describe' : 'name')
   }
 
   async function refreshBranchInfo() {
@@ -96,6 +102,12 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
   }
 
   const candidates = [...new Set(entries.map((e) => e.text.trim()).filter(Boolean))]
+
+  // Files to walk through in the describe step, after applying ignore patterns.
+  const describeFiles = useMemo(
+    () => applyDescribeIgnore(stagedFiles, describeIgnore, describeIgnoreMode),
+    [stagedFiles, describeIgnore, describeIgnoreMode]
+  )
 
   function handleDescribeFinish(ents: DescEntry[]) {
     setEntries(ents)
@@ -217,7 +229,7 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
         {step === 'prep' && <div className="wizard-body empty-hint">Preparing…</div>}
 
         {step === 'describe' && (
-          <DescriptionWriter embedded files={stagedFiles} onFinish={handleDescribeFinish} />
+          <DescriptionWriter embedded files={describeFiles} onFinish={handleDescribeFinish} />
         )}
 
         {step === 'name' && (
@@ -250,12 +262,17 @@ export default function CommitWizard({ open, onClose, onDone }: Props) {
                 ))}
               </div>
             )}
-            {description && (
-              <details className="wizard-desc-preview">
-                <summary>Description ({entries.length})</summary>
-                <pre>{description}</pre>
-              </details>
-            )}
+            <label className="wizard-label">Description</label>
+            <textarea
+              className="small-modal-input wizard-desc-edit"
+              placeholder="Describe the change in more detail (optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={Math.max(4, Math.min(12, description.split('\n').length + 1))}
+            />
+            <div className="muted small">
+              This body is committed under the summary — good for larger, on-topic commits.
+            </div>
             <div className="wizard-actions">
               <button className="tb-btn" onClick={() => setStep('describe')}>
                 Back

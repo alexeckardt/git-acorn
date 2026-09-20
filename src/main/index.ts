@@ -72,6 +72,14 @@ function createWindow(): void {
   updater.initAutoUpdate(win)
 }
 
+/** Open the repo folder itself in the OS file manager (Finder/Explorer/…). */
+async function openRepoFolder(): Promise<void> {
+  const repo = g.getRepoPath()
+  if (!repo) throw new Error('No repository is open')
+  const err = await shell.openPath(repo)
+  if (err) throw new Error(err)
+}
+
 /** Resolve a repo-relative path to an absolute one, erroring if no repo is open. */
 function resolveInRepo(relPath: string): string {
   const repo = g.getRepoPath()
@@ -317,6 +325,7 @@ function registerIpc(): void {
   ipcMain.on('update:install', () => updater.quitAndInstall())
 
   ipcMain.handle('git:openInEditor', () => wrap(() => openInEditor()))
+  ipcMain.handle('git:openRepoFolder', () => wrap(() => openRepoFolder()))
   ipcMain.handle('git:openFile', (_e, path: string) => wrap(() => openFile(path)))
   ipcMain.handle('git:openFileInEditor', (_e, path: string) => wrap(() => openFileInEditor(path)))
   ipcMain.handle('git:revealFile', (_e, path: string) =>

@@ -54,3 +54,56 @@ export function initials(name: string): string {
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
+
+/**
+ * Does `path` match a single describe-ignore pattern? Forgiving, gitignore-ish:
+ *  - Extension shorthand: ".png", "png", "*.png" match any file with that ext.
+ *  - Globs with `*` / `?` match against the basename or the full path.
+ *  - Anything else is a case-insensitive substring of the full path
+ *    (so "dist/", "assets", "package-lock.json" all work).
+ */
+export function matchesIgnorePattern(path: string, raw: string): boolean {
+  const p = raw.trim().toLowerCase()
+  if (!p) return false
+  const name = (path.split('/').pop() || path).toLowerCase()
+  const full = path.toLowerCase()
+
+  // Extension shorthand — ".png" / "png" (but not "*.png", handled as a glob).
+  const ext = p.match(/^\.?([a-z0-9]+)$/)
+  if (ext && !p.includes('*') && !p.includes('/')) {
+    return name.endsWith('.' + ext[1])
+  }
+
+  if (p.includes('*') || p.includes('?')) {
+    const re = new RegExp(
+      '^' +
+        p.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') +
+        '$'
+    )
+    return re.test(name) || re.test(full)
+  }
+
+  return full.includes(p)
+}
+
+/** True when `path` matches any of the given ignore patterns. */
+export function matchesAnyIgnore(path: string, patterns: string[]): boolean {
+  return patterns.some((p) => matchesIgnorePattern(path, p))
+}
+
+/**
+ * Reorder / filter changed files for the describe walk-through given the
+ * describe-ignore patterns. In "skip" mode ignored files are dropped; in
+ * "last" mode they are moved to the bottom (stable within each group).
+ */
+export function applyDescribeIgnore<T extends { path: string }>(
+  files: T[],
+  patterns: string[],
+  mode: 'skip' | 'last'
+): T[] {
+  if (patterns.length === 0) return files
+  const kept: T[] = []
+  const ignored: T[] = []
+  for (const f of files) (matchesAnyIgnore(f.path, patterns) ? ignored : kept).push(f)
+  return mode === 'skip' ? kept : [...kept, ...ignored]
+}

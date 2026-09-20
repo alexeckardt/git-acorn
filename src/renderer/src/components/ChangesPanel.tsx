@@ -54,6 +54,16 @@ export default function ChangesPanel({
     }
   }
 
+  function discardAll() {
+    const paths = status.unstaged.map((f) => f.path);
+    if (paths.length === 0) return;
+    const label =
+      paths.length === 1 ? "1 file" : `all ${paths.length} unstaged files`;
+    if (confirm(`Discard changes to ${label}? This cannot be undone.`)) {
+      run(window.gitApi.discard(paths));
+    }
+  }
+
   /** The right-click menu mirrors the row's quick actions, plus ignore options. */
   function buildMenu(f: ChangedFile): MenuItem[] {
     const items: MenuItem[] = [];
@@ -165,12 +175,21 @@ export default function ChangesPanel({
             Changes <span className="count">{status.unstaged.length}</span>
           </span>
           {status.unstaged.length > 0 && (
-            <button
-              className="text-btn"
-              onClick={() => run(window.gitApi.stageAll())}
-            >
-              Stage all
-            </button>
+            <span className="section-head-actions">
+              <button
+                className="text-btn danger"
+                onClick={discardAll}
+                title="Discard all unstaged changes"
+              >
+                Discard all
+              </button>
+              <button
+                className="text-btn"
+                onClick={() => run(window.gitApi.stageAll())}
+              >
+                Stage all
+              </button>
+            </span>
           )}
         </header>
         <div className="file-list">
